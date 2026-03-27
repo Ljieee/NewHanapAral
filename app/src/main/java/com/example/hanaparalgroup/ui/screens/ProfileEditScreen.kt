@@ -21,7 +21,6 @@ fun ProfileEditScreen(
     onNavigateBack: () -> Unit,
     onSaved: () -> Unit
 ) {
-    // Form state – populated from Firestore on real implementation
     var name by remember { mutableStateOf("Alex Aropo") }
     var course by remember { mutableStateOf("Bachelor of Science in Computer Science") }
     var yearLevel by remember { mutableStateOf("3rd Year") }
@@ -47,17 +46,14 @@ fun ProfileEditScreen(
                 onNavigateBack = onNavigateBack,
                 actions = {
                     TextButton(onClick = {
-                        if (validate()) {
-                            // Aropo: Firestore save logic here
-                            onSaved()
-                        }
+                        if (validate()) { onSaved() }
                     }) {
-                        Text("Save", color = ActionLight, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text("Save", color = White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
                     }
                 }
             )
         },
-        containerColor = Background
+        containerColor = Ink50
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
@@ -66,14 +62,15 @@ fun ProfileEditScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(padding)
                     .padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 // ── Avatar section ───────────────────────────────────────────
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = Surface),
-                    elevation = CardDefaults.cardElevation(2.dp)
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = White),
+                    elevation = CardDefaults.cardElevation(0.dp),
+                    border = BorderStroke(1.dp, Ink200)
                 ) {
                     Column(
                         modifier = Modifier
@@ -82,61 +79,53 @@ fun ProfileEditScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Box(contentAlignment = Alignment.BottomEnd) {
-                            AvatarInitials(name = name.ifEmpty { "?" }, size = 90.dp)
+                            AvatarInitials(name = name.ifEmpty { "?" }, size = 80.dp, backgroundColor = Ink900)
                             Box(
                                 modifier = Modifier
-                                    .size(28.dp)
-                                    .background(Action, CircleShape)
-                                    .border(2.dp, Surface, CircleShape),
+                                    .size(26.dp)
+                                    .background(White, CircleShape)
+                                    .border(1.dp, Ink200, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     Icons.Default.CameraAlt,
                                     contentDescription = null,
-                                    tint = Surface,
-                                    modifier = Modifier.size(14.dp)
+                                    tint = Ink600,
+                                    modifier = Modifier.size(13.dp)
                                 )
                             }
                         }
-                        Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(10.dp))
                         Text(
                             "Tap to update photo",
                             style = MaterialTheme.typography.labelSmall,
-                            color = TextSecondary
-                        )
-                        Text(
-                            "Profile initials auto-generated from name",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextHint
+                            color = Ink400
                         )
                     }
                 }
 
-                // ── Form Card ────────────────────────────────────────────────
+                // ── Personal Info Card ───────────────────────────────────────
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = Surface),
-                    elevation = CardDefaults.cardElevation(2.dp)
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = White),
+                    elevation = CardDefaults.cardElevation(0.dp),
+                    border = BorderStroke(1.dp, Ink200)
                 ) {
                     Column(
-                        modifier = Modifier.padding(24.dp),
-                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Text(
                             "Personal Information",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = TextPrimary,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.titleSmall,
+                            color = Ink400,
+                            fontWeight = FontWeight.SemiBold
                         )
 
-                        // Full name
                         BrandedTextField(
                             value = name,
-                            onValueChange = {
-                                name = it
-                                if (nameError.isNotEmpty()) nameError = ""
-                            },
+                            onValueChange = { name = it; if (nameError.isNotEmpty()) nameError = "" },
                             label = "Full Name *",
                             leadingIcon = Icons.Default.Person,
                             isError = nameError.isNotEmpty(),
@@ -144,7 +133,6 @@ fun ProfileEditScreen(
                             placeholder = "e.g. Juan dela Cruz"
                         )
 
-                        // Email (read-only, from Google)
                         BrandedTextField(
                             value = email,
                             onValueChange = {},
@@ -153,13 +141,13 @@ fun ProfileEditScreen(
                             readOnly = true,
                             enabled = false,
                             trailingIcon = {
-                                Icon(Icons.Default.Lock, contentDescription = null, tint = TextHint, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Lock, contentDescription = null, tint = Ink300, modifier = Modifier.size(16.dp))
                             }
                         )
                         Text(
                             "Email is managed by your Google account",
                             style = MaterialTheme.typography.labelSmall,
-                            color = TextHint,
+                            color = Ink300,
                             modifier = Modifier.padding(start = 4.dp)
                         )
                     }
@@ -168,28 +156,25 @@ fun ProfileEditScreen(
                 // ── Academic Info Card ───────────────────────────────────────
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = Surface),
-                    elevation = CardDefaults.cardElevation(2.dp)
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = White),
+                    elevation = CardDefaults.cardElevation(0.dp),
+                    border = BorderStroke(1.dp, Ink200)
                 ) {
                     Column(
-                        modifier = Modifier.padding(24.dp),
-                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Text(
                             "Academic Information",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = TextPrimary,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.titleSmall,
+                            color = Ink400,
+                            fontWeight = FontWeight.SemiBold
                         )
 
-                        // Course
                         BrandedTextField(
                             value = course,
-                            onValueChange = {
-                                course = it
-                                if (courseError.isNotEmpty()) courseError = ""
-                            },
+                            onValueChange = { course = it; if (courseError.isNotEmpty()) courseError = "" },
                             label = "Course / Program *",
                             leadingIcon = Icons.Default.School,
                             isError = courseError.isNotEmpty(),
@@ -208,9 +193,9 @@ fun ProfileEditScreen(
                                 value = yearLevel,
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("Year Level") },
+                                label = { Text("Year Level", style = MaterialTheme.typography.bodySmall) },
                                 leadingIcon = {
-                                    Icon(Icons.Default.DateRange, contentDescription = null, tint = Brand)
+                                    Icon(Icons.Default.DateRange, contentDescription = null, tint = Ink400, modifier = Modifier.size(18.dp))
                                 },
                                 trailingIcon = {
                                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = yearDropdownExpanded)
@@ -218,12 +203,12 @@ fun ProfileEditScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(10.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = Brand,
-                                    unfocusedBorderColor = Divider,
-                                    focusedLabelColor = Brand,
-                                    unfocusedLabelColor = TextSecondary
+                                    focusedBorderColor = Ink900,
+                                    unfocusedBorderColor = Ink200,
+                                    focusedLabelColor = Ink900,
+                                    unfocusedLabelColor = Ink400
                                 )
                             )
                             ExposedDropdownMenu(
@@ -232,14 +217,11 @@ fun ProfileEditScreen(
                             ) {
                                 yearOptions.forEach { option ->
                                     DropdownMenuItem(
-                                        text = { Text(option, style = MaterialTheme.typography.bodyMedium) },
-                                        onClick = {
-                                            yearLevel = option
-                                            yearDropdownExpanded = false
-                                        },
+                                        text = { Text(option, style = MaterialTheme.typography.bodySmall) },
+                                        onClick = { yearLevel = option; yearDropdownExpanded = false },
                                         leadingIcon = {
                                             if (yearLevel == option) {
-                                                Icon(Icons.Default.Check, contentDescription = null, tint = Action)
+                                                Icon(Icons.Default.Check, contentDescription = null, tint = Ink900, modifier = Modifier.size(16.dp))
                                             }
                                         }
                                     )
@@ -253,13 +235,9 @@ fun ProfileEditScreen(
                 PrimaryButton(
                     text = "Save Changes",
                     onClick = {
-                        if (validate()) {
-                            isSaving = true
-                            // Aropo: save to Firestore
-                            onSaved()
-                        }
+                        if (validate()) { isSaving = true; onSaved() }
                     },
-                    icon = Icons.Default.Save,
+                    icon = Icons.Default.Check,
                     isLoading = isSaving,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -267,33 +245,34 @@ fun ProfileEditScreen(
                 // ── Danger zone ──────────────────────────────────────────────
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = Alert.copy(alpha = 0.06f)),
-                    border = BorderStroke(1.dp, Alert.copy(alpha = 0.3f))
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = White),
+                    border = BorderStroke(1.dp, Ink200),
+                    elevation = CardDefaults.cardElevation(0.dp)
                 ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
+                    Column(modifier = Modifier.padding(18.dp)) {
                         Text(
-                            "Danger Zone",
+                            "Account",
                             style = MaterialTheme.typography.titleSmall,
-                            color = Alert,
-                            fontWeight = FontWeight.Bold
+                            color = Ink400,
+                            fontWeight = FontWeight.SemiBold
                         )
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(10.dp))
                         OutlinedButton(
                             onClick = { /* Galang: sign-out logic */ },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, Alert),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Alert)
+                            modifier = Modifier.fillMaxWidth().height(44.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, Danger.copy(alpha = 0.5f)),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Danger)
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(15.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("Sign Out", style = MaterialTheme.typography.labelLarge)
+                            Text("Sign Out", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
 
-                Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(24.dp))
             }
 
             if (isSaving) LoadingOverlay(message = "Saving profile...")

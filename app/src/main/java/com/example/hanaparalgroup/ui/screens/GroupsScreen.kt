@@ -3,6 +3,7 @@ package com.example.hanaparalgroup.ui.screens
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.*
@@ -59,7 +60,7 @@ fun GroupsScreen(
                 onNavigateBack = onNavigateBack,
                 actions = {
                     IconButton(onClick = onNavigateToCreate) {
-                        Icon(Icons.Default.Add, contentDescription = "Create Group", tint = Surface)
+                        Icon(Icons.Default.Add, contentDescription = "Create Group", tint = White)
                     }
                 }
             )
@@ -67,14 +68,14 @@ fun GroupsScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onNavigateToCreate,
-                containerColor = Action,
-                contentColor = Surface,
-                shape = RoundedCornerShape(18.dp)
+                containerColor = Ink900,
+                contentColor = White,
+                shape = RoundedCornerShape(14.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Create Group")
             }
         },
-        containerColor = Background
+        containerColor = Ink50
     ) { padding ->
         LazyColumn(
             modifier = Modifier
@@ -88,25 +89,25 @@ fun GroupsScreen(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = { Text("Search groups or subjects…", color = TextHint) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Brand) },
+                    placeholder = { Text("Search groups or subjects…", color = Ink300, style = MaterialTheme.typography.bodySmall) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Ink400, modifier = Modifier.size(18.dp)) },
                     trailingIcon = {
                         AnimatedVisibility(visible = searchQuery.isNotEmpty(), enter = fadeIn(), exit = fadeOut()) {
                             IconButton(onClick = { searchQuery = "" }) {
-                                Icon(Icons.Default.Clear, contentDescription = null, tint = TextSecondary)
+                                Icon(Icons.Default.Clear, contentDescription = null, tint = Ink400, modifier = Modifier.size(16.dp))
                             }
                         }
                     },
                     singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Brand,
-                        unfocusedBorderColor = Divider,
-                        focusedContainerColor = Surface,
-                        unfocusedContainerColor = Surface
+                        focusedBorderColor = Ink900,
+                        unfocusedBorderColor = Ink200,
+                        focusedContainerColor = White,
+                        unfocusedContainerColor = White
                     )
                 )
             }
@@ -123,22 +124,22 @@ fun GroupsScreen(
                         FilterChip(
                             selected = isSelected,
                             onClick = { selectedFilter = filter },
-                            label = { Text(filter, style = MaterialTheme.typography.labelLarge) },
+                            label = { Text(filter, style = MaterialTheme.typography.labelMedium) },
                             leadingIcon = if (isSelected) {
-                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
                             } else null,
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Brand,
-                                selectedLabelColor = Surface,
-                                selectedLeadingIconColor = Surface,
-                                containerColor = Surface,
-                                labelColor = TextSecondary
+                                selectedContainerColor = Ink900,
+                                selectedLabelColor = White,
+                                selectedLeadingIconColor = White,
+                                containerColor = White,
+                                labelColor = Ink400
                             ),
                             border = FilterChipDefaults.filterChipBorder(
                                 enabled = true,
                                 selected = isSelected,
-                                selectedBorderColor = Brand,
-                                borderColor = Divider
+                                selectedBorderColor = Ink900,
+                                borderColor = Ink200
                             )
                         )
                     }
@@ -147,7 +148,7 @@ fun GroupsScreen(
 
             // Count label
             item {
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(14.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -157,12 +158,12 @@ fun GroupsScreen(
                 ) {
                     Text(
                         text = "${filtered.size} group${if (filtered.size != 1) "s" else ""} found",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondary
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Ink400
                     )
                     if (searchQuery.isNotEmpty() || selectedFilter != "All") {
                         TextButton(onClick = { searchQuery = ""; selectedFilter = "All" }) {
-                            Text("Clear filters", color = Alert, style = MaterialTheme.typography.labelSmall)
+                            Text("Clear", color = Danger, style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
@@ -180,7 +181,7 @@ fun GroupsScreen(
                     ) {
                         EmptyState(
                             icon = Icons.Outlined.SearchOff,
-                            title = "No Groups Found",
+                            title = "No groups found",
                             subtitle = "Try adjusting your search or filters.",
                             action = "Clear Filters",
                             onAction = { searchQuery = ""; selectedFilter = "All" }
@@ -198,7 +199,7 @@ fun GroupsScreen(
                         isJoined = group.isJoined,
                         onClick = { onNavigateToDetail(group.id) },
                         onJoinClick = { /* Balanag: join logic */ },
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
                     )
                 }
             }

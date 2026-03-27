@@ -31,13 +31,7 @@ fun GradientBackground(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Background, SurfaceAlt),
-                    startY = 0f,
-                    endY = 1200f
-                )
-            ),
+            .background(Ink50),
         content = content
     )
 }
@@ -55,8 +49,8 @@ fun HanapAralTopBar(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
-                color = Surface,
-                fontWeight = FontWeight.Bold
+                color = White,
+                fontWeight = FontWeight.SemiBold
             )
         },
         navigationIcon = {
@@ -65,17 +59,17 @@ fun HanapAralTopBar(
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Back",
-                        tint = Surface
+                        tint = White
                     )
                 }
             }
         },
         actions = actions,
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Brand,
-            titleContentColor = Surface,
-            actionIconContentColor = Surface,
-            navigationIconContentColor = Surface
+            containerColor = Ink900,
+            titleContentColor = White,
+            actionIconContentColor = White,
+            navigationIconContentColor = White
         )
     )
 }
@@ -93,33 +87,33 @@ fun PrimaryButton(
     Button(
         onClick = onClick,
         enabled = enabled && !isLoading,
-        modifier = modifier.height(52.dp),
-        shape = RoundedCornerShape(14.dp),
+        modifier = modifier.height(50.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Brand,
-            contentColor   = Surface,
-            disabledContainerColor = SurfaceAlt,
-            disabledContentColor   = TextHint
+            containerColor = Ink900,
+            contentColor   = White,
+            disabledContainerColor = Ink200,
+            disabledContentColor   = Ink400
         ),
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
     ) {
         if (isLoading) {
             CircularProgressIndicator(
-                modifier = Modifier.size(20.dp),
-                color = Surface,
+                modifier = Modifier.size(18.dp),
+                color = White,
                 strokeWidth = 2.dp
             )
         } else {
             if (icon != null) {
-                Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(icon, contentDescription = null, modifier = Modifier.size(17.dp))
                 Spacer(Modifier.width(8.dp))
             }
-            Text(text, style = MaterialTheme.typography.labelLarge)
+            Text(text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
         }
     }
 }
 
-// ── Action (Teal) Button ──────────────────────────────────────────────────────
+// ── Action (Accent) Button ────────────────────────────────────────────────────
 @Composable
 fun ActionButton(
     text: String,
@@ -132,28 +126,28 @@ fun ActionButton(
     Button(
         onClick = onClick,
         enabled = enabled && !isLoading,
-        modifier = modifier.height(52.dp),
-        shape = RoundedCornerShape(14.dp),
+        modifier = modifier.height(50.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Action,
-            contentColor   = Surface,
-            disabledContainerColor = SurfaceAlt,
-            disabledContentColor   = TextHint
+            containerColor = Accent,
+            contentColor   = White,
+            disabledContainerColor = Ink200,
+            disabledContentColor   = Ink400
         ),
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
     ) {
         if (isLoading) {
             CircularProgressIndicator(
-                modifier = Modifier.size(20.dp),
-                color = Surface,
+                modifier = Modifier.size(18.dp),
+                color = White,
                 strokeWidth = 2.dp
             )
         } else {
             if (icon != null) {
-                Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(icon, contentDescription = null, modifier = Modifier.size(17.dp))
                 Spacer(Modifier.width(8.dp))
             }
-            Text(text, style = MaterialTheme.typography.labelLarge)
+            Text(text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -165,20 +159,20 @@ fun OutlinedSecondaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
-    color: Color = Brand
+    color: Color = Ink900
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.height(52.dp),
-        shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(1.5.dp, color),
+        modifier = modifier.height(50.dp),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, color),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = color)
     ) {
         if (icon != null) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+            Icon(icon, contentDescription = null, modifier = Modifier.size(17.dp))
             Spacer(Modifier.width(8.dp))
         }
-        Text(text, style = MaterialTheme.typography.labelLarge)
+        Text(text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -203,12 +197,12 @@ fun BrandedTextField(
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            label = { Text(label, style = MaterialTheme.typography.bodyMedium) },
+            label = { Text(label, style = MaterialTheme.typography.bodySmall) },
             placeholder = if (placeholder.isNotEmpty()) {
-                { Text(placeholder, color = TextHint, style = MaterialTheme.typography.bodyMedium) }
+                { Text(placeholder, color = Ink300, style = MaterialTheme.typography.bodyMedium) }
             } else null,
             leadingIcon = if (leadingIcon != null) {
-                { Icon(leadingIcon, contentDescription = null, tint = if (isError) Alert else Brand) }
+                { Icon(leadingIcon, contentDescription = null, tint = if (isError) Danger else Ink400, modifier = Modifier.size(18.dp)) }
             } else null,
             trailingIcon = trailingIcon,
             isError = isError,
@@ -217,25 +211,28 @@ fun BrandedTextField(
             readOnly = readOnly,
             enabled = enabled,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(10.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Brand,
-                unfocusedBorderColor = Divider,
-                errorBorderColor = Alert,
-                focusedLabelColor = Brand,
-                unfocusedLabelColor = TextSecondary,
-                cursorColor = Brand,
-                focusedContainerColor = Surface,
-                unfocusedContainerColor = Surface,
-                disabledContainerColor = SurfaceAlt
+                focusedBorderColor = Ink900,
+                unfocusedBorderColor = Ink200,
+                errorBorderColor = Danger,
+                focusedLabelColor = Ink900,
+                unfocusedLabelColor = Ink400,
+                cursorColor = Ink900,
+                focusedContainerColor = White,
+                unfocusedContainerColor = White,
+                disabledContainerColor = Ink50,
+                disabledBorderColor = Ink200,
+                disabledLabelColor = Ink300,
+                disabledTextColor = Ink400
             )
         )
         AnimatedVisibility(visible = isError && errorMessage.isNotEmpty()) {
             Text(
                 text = errorMessage,
-                color = Alert,
+                color = Danger,
                 style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                modifier = Modifier.padding(start = 14.dp, top = 4.dp)
             )
         }
     }
@@ -255,20 +252,17 @@ fun StudyGroupCard(
     modifier: Modifier = Modifier
 ) {
     val fillRatio = memberCount.toFloat() / maxMembers.toFloat()
-    val statusColor = when {
-        fillRatio >= 1f -> Alert
-        fillRatio >= 0.8f -> Warning
-        else -> Success
-    }
+    val isFull = fillRatio >= 1f
 
     Card(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp, pressedElevation = 1.dp)
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, Ink200)
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
+        Column(modifier = Modifier.padding(18.dp)) {
             // Header row
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -278,56 +272,68 @@ fun StudyGroupCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = groupName,
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = TextPrimary,
-                        maxLines = 2,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Ink900,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = subject,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Action,
-                        fontWeight = FontWeight.Medium
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Ink400
                     )
                 }
                 Spacer(Modifier.width(12.dp))
-                // Status badge
+                // Status pill
                 Surface(
                     shape = RoundedCornerShape(20.dp),
-                    color = if (isJoined) Action.copy(alpha = 0.15f) else SurfaceAlt
+                    color = when {
+                        isJoined -> Ink900
+                        isFull   -> Ink100
+                        else     -> AccentSoft
+                    }
                 ) {
                     Text(
-                        text = if (isJoined) "Joined" else "Open",
+                        text = when {
+                            isJoined -> "Joined"
+                            isFull   -> "Full"
+                            else     -> "Open"
+                        },
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (isJoined) Action else TextSecondary,
+                        color = when {
+                            isJoined -> White
+                            isFull   -> Ink400
+                            else     -> Accent
+                        },
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                     )
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(14.dp))
 
             // Admin info
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     Icons.Default.Person,
                     contentDescription = null,
-                    tint = TextSecondary,
-                    modifier = Modifier.size(14.dp)
+                    tint = Ink300,
+                    modifier = Modifier.size(13.dp)
                 )
                 Spacer(Modifier.width(4.dp))
                 Text(
-                    text = "Admin: $adminName",
+                    text = adminName,
                     style = MaterialTheme.typography.labelSmall,
-                    color = TextSecondary
+                    color = Ink400
                 )
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(14.dp))
 
-            // Member count progress
+            // Member progress bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -336,12 +342,12 @@ fun StudyGroupCard(
                 Text(
                     text = "Members",
                     style = MaterialTheme.typography.labelSmall,
-                    color = TextSecondary
+                    color = Ink400
                 )
                 Text(
                     text = "$memberCount / $maxMembers",
                     style = MaterialTheme.typography.labelSmall,
-                    color = statusColor,
+                    color = Ink900,
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -350,20 +356,27 @@ fun StudyGroupCard(
                 progress = { fillRatio.coerceIn(0f, 1f) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(RoundedCornerShape(3.dp)),
-                color = statusColor,
-                trackColor = SurfaceAlt
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+                color = if (isFull) Ink300 else Ink900,
+                trackColor = Ink100
             )
 
-            if (!isJoined && fillRatio < 1f) {
-                Spacer(Modifier.height(16.dp))
-                ActionButton(
-                    text = "Join Group",
+            if (!isJoined && !isFull) {
+                Spacer(Modifier.height(14.dp))
+                OutlinedButton(
                     onClick = onJoinClick,
-                    modifier = Modifier.fillMaxWidth(),
-                    icon = Icons.Default.Add
-                )
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, Ink900),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Ink900)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(15.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Join Group", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                }
             }
         }
     }
@@ -380,36 +393,37 @@ fun NotificationItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val (iconVec, iconColor) = when (type) {
-        NotificationType.NEW_MEMBER   -> Pair(Icons.Default.PersonAdd, Action)
-        NotificationType.ANNOUNCEMENT -> Pair(Icons.Default.Campaign, Brand)
-        NotificationType.REMINDER     -> Pair(Icons.Default.Alarm, Warning)
+    val (iconVec, iconBg) = when (type) {
+        NotificationType.NEW_MEMBER   -> Pair(Icons.Default.PersonAdd, Ink100)
+        NotificationType.ANNOUNCEMENT -> Pair(Icons.Default.Campaign, Ink100)
+        NotificationType.REMINDER     -> Pair(Icons.Default.Alarm, AccentSoft)
     }
 
     Card(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isRead) Surface else Brand.copy(alpha = 0.04f)
+            containerColor = if (isRead) White else AccentSoft
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isRead) 1.dp else 3.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, if (isRead) Ink200 else Ink200)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.Top
         ) {
             // Icon bubble
             Box(
                 modifier = Modifier
-                    .size(44.dp)
-                    .background(iconColor.copy(alpha = 0.12f), CircleShape),
+                    .size(40.dp)
+                    .background(iconBg, RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(iconVec, contentDescription = null, tint = iconColor, modifier = Modifier.size(22.dp))
+                Icon(iconVec, contentDescription = null, tint = Ink700, modifier = Modifier.size(19.dp))
             }
 
-            Spacer(Modifier.width(14.dp))
+            Spacer(Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Row(
@@ -420,32 +434,32 @@ fun NotificationItem(
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleSmall,
-                        color = TextPrimary,
-                        fontWeight = if (isRead) FontWeight.Normal else FontWeight.Bold,
+                        color = Ink900,
+                        fontWeight = if (isRead) FontWeight.Normal else FontWeight.SemiBold,
                         modifier = Modifier.weight(1f)
                     )
                     if (!isRead) {
                         Spacer(Modifier.width(8.dp))
                         Box(
                             modifier = Modifier
-                                .size(8.dp)
-                                .background(Action, CircleShape)
+                                .size(7.dp)
+                                .background(Accent, CircleShape)
                         )
                     }
                 }
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(3.dp))
                 Text(
                     text = body,
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
+                    color = Ink400,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(5.dp))
                 Text(
                     text = timeAgo,
                     style = MaterialTheme.typography.labelSmall,
-                    color = TextHint
+                    color = Ink300
                 )
             }
         }
@@ -460,39 +474,40 @@ fun StatCard(
     label: String,
     value: String,
     icon: ImageVector,
-    color: Color = Brand,
+    color: Color = Ink900,
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = Surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, Ink200)
     ) {
         Column(
-            modifier = Modifier.padding(18.dp),
+            modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.Start
         ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .background(color.copy(alpha = 0.12f), RoundedCornerShape(12.dp)),
+                    .size(36.dp)
+                    .background(Ink100, RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
+                Icon(icon, contentDescription = null, tint = Ink700, modifier = Modifier.size(19.dp))
             }
             Spacer(Modifier.height(12.dp))
             Text(
                 text = value,
-                style = MaterialTheme.typography.displaySmall,
-                color = color,
+                style = MaterialTheme.typography.headlineLarge,
+                color = Ink900,
                 fontWeight = FontWeight.ExtraBold
             )
             Spacer(Modifier.height(2.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = TextSecondary
+                color = Ink400
             )
         }
     }
@@ -513,14 +528,15 @@ fun SectionHeader(
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.headlineMedium,
-            color = TextPrimary
+            style = MaterialTheme.typography.titleMedium,
+            color = Ink900,
+            fontWeight = FontWeight.Bold
         )
         if (action != null && onActionClick != null) {
             TextButton(onClick = onActionClick) {
-                Text(action, color = Action, style = MaterialTheme.typography.labelLarge)
-                Spacer(Modifier.width(4.dp))
-                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Action, modifier = Modifier.size(16.dp))
+                Text(action, color = Ink400, style = MaterialTheme.typography.labelMedium)
+                Spacer(Modifier.width(2.dp))
+                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Ink400, modifier = Modifier.size(14.dp))
             }
         }
     }
@@ -543,29 +559,29 @@ fun EmptyState(
     ) {
         Box(
             modifier = Modifier
-                .size(80.dp)
-                .background(SurfaceAlt, CircleShape),
+                .size(72.dp)
+                .background(Ink100, RoundedCornerShape(20.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, contentDescription = null, tint = TextHint, modifier = Modifier.size(40.dp))
+            Icon(icon, contentDescription = null, tint = Ink400, modifier = Modifier.size(34.dp))
         }
         Spacer(Modifier.height(20.dp))
-        Text(title, style = MaterialTheme.typography.headlineSmall, color = TextPrimary, textAlign = TextAlign.Center)
-        Spacer(Modifier.height(8.dp))
-        Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = TextSecondary, textAlign = TextAlign.Center)
+        Text(title, style = MaterialTheme.typography.titleMedium, color = Ink900, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(6.dp))
+        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Ink400, textAlign = TextAlign.Center)
         if (action != null && onAction != null) {
-            Spacer(Modifier.height(24.dp))
-            ActionButton(text = action, onClick = onAction, modifier = Modifier.fillMaxWidth(0.6f))
+            Spacer(Modifier.height(20.dp))
+            PrimaryButton(text = action, onClick = onAction, modifier = Modifier.fillMaxWidth(0.6f))
         }
     }
 }
 
 // ── Pulsing Dot Indicator ─────────────────────────────────────────────────────
 @Composable
-fun PulsingDot(color: Color = Action, modifier: Modifier = Modifier) {
+fun PulsingDot(color: Color = Accent, modifier: Modifier = Modifier) {
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f, targetValue = 1f,
+        initialValue = 0.4f, targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(800, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
@@ -574,7 +590,7 @@ fun PulsingDot(color: Color = Action, modifier: Modifier = Modifier) {
     )
     Box(
         modifier = modifier
-            .size(10.dp)
+            .size(8.dp)
             .background(color.copy(alpha = alpha), CircleShape)
     )
 }
@@ -583,19 +599,19 @@ fun PulsingDot(color: Color = Action, modifier: Modifier = Modifier) {
 @Composable
 fun TagChip(
     text: String,
-    color: Color = Action,
+    color: Color = Ink900,
     modifier: Modifier = Modifier
 ) {
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(20.dp),
-        color = color.copy(alpha = 0.12f)
+        color = Ink100
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelSmall,
-            color = color,
-            fontWeight = FontWeight.SemiBold,
+            color = Ink700,
+            fontWeight = FontWeight.Medium,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
         )
     }
@@ -607,20 +623,21 @@ fun LoadingOverlay(message: String = "Loading...") {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(TextPrimary.copy(alpha = 0.4f)),
+            .background(Color(0xCC000000)),
         contentAlignment = Alignment.Center
     ) {
         Card(
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Surface)
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = White),
+            elevation = CardDefaults.cardElevation(0.dp)
         ) {
             Column(
-                modifier = Modifier.padding(32.dp),
+                modifier = Modifier.padding(28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                CircularProgressIndicator(color = Brand, strokeWidth = 3.dp)
-                Spacer(Modifier.height(16.dp))
-                Text(message, style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                CircularProgressIndicator(color = Ink900, strokeWidth = 2.5.dp, modifier = Modifier.size(28.dp))
+                Spacer(Modifier.height(14.dp))
+                Text(message, style = MaterialTheme.typography.bodySmall, color = Ink400)
             }
         }
     }
@@ -631,8 +648,8 @@ fun LoadingOverlay(message: String = "Loading...") {
 fun AvatarInitials(
     name: String,
     size: Dp = 44.dp,
-    backgroundColor: Color = Brand,
-    textColor: Color = Surface
+    backgroundColor: Color = Ink900,
+    textColor: Color = White
 ) {
     val initials = name.split(" ")
         .take(2)
@@ -648,9 +665,9 @@ fun AvatarInitials(
     ) {
         Text(
             text = initials,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.labelLarge,
             color = textColor,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.SemiBold
         )
     }
 }
@@ -662,14 +679,14 @@ fun LabeledDivider(label: String, modifier: Modifier = Modifier) {
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        HorizontalDivider(modifier = Modifier.weight(1f), color = Divider)
+        HorizontalDivider(modifier = Modifier.weight(1f), color = Ink200)
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = TextHint,
+            color = Ink300,
             modifier = Modifier.padding(horizontal = 12.dp)
         )
-        HorizontalDivider(modifier = Modifier.weight(1f), color = Divider)
+        HorizontalDivider(modifier = Modifier.weight(1f), color = Ink200)
     }
 }
 
@@ -686,23 +703,25 @@ fun ConfigToggleRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.titleMedium, color = TextPrimary)
-            Text(description, style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(label, style = MaterialTheme.typography.titleSmall, color = Ink900, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(2.dp))
+            Text(description, style = MaterialTheme.typography.bodySmall, color = Ink400)
         }
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
             enabled = enabled,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = Surface,
-                checkedTrackColor = Action,
-                uncheckedThumbColor = TextHint,
-                uncheckedTrackColor = SurfaceAlt
+                checkedThumbColor = White,
+                checkedTrackColor = Ink900,
+                uncheckedThumbColor = Ink400,
+                uncheckedTrackColor = Ink100,
+                uncheckedBorderColor = Ink200
             )
         )
     }
@@ -717,7 +736,7 @@ fun MemberAvatarStack(
 ) {
     val visible = names.take(maxVisible)
     val overflow = names.size - maxVisible
-    val colors = listOf(Brand, Action, Warning, Success, Alert)
+    val bgColors = listOf(Ink900, Ink600, Ink400, Ink700)
 
     Row(modifier = modifier) {
         visible.forEachIndexed { idx, name ->
@@ -725,7 +744,7 @@ fun MemberAvatarStack(
                 AvatarInitials(
                     name = name,
                     size = 32.dp,
-                    backgroundColor = colors[idx % colors.size]
+                    backgroundColor = bgColors[idx % bgColors.size]
                 )
             }
         }
@@ -734,8 +753,8 @@ fun MemberAvatarStack(
                 AvatarInitials(
                     name = "+$overflow",
                     size = 32.dp,
-                    backgroundColor = SurfaceAlt,
-                    textColor = TextSecondary
+                    backgroundColor = Ink100,
+                    textColor = Ink700
                 )
             }
         }

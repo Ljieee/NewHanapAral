@@ -12,7 +12,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.*
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
@@ -24,7 +23,6 @@ fun ProfileScreen(
     onNavigateBack: () -> Unit,
     onNavigateToEdit: () -> Unit
 ) {
-    // Placeholder data – replaced by Firestore stream (Aropo)
     val name = "Alex Aropo"
     val course = "Bachelor of Science in Computer Science"
     val yearLevel = "3rd Year"
@@ -35,16 +33,16 @@ fun ProfileScreen(
     Scaffold(
         topBar = {
             HanapAralTopBar(
-                title = "My Profile",
+                title = "Profile",
                 onNavigateBack = onNavigateBack,
                 actions = {
                     IconButton(onClick = onNavigateToEdit) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit Profile", tint = Surface)
+                        Icon(Icons.Default.Edit, contentDescription = "Edit Profile", tint = White)
                     }
                 }
             )
         },
-        containerColor = Background
+        containerColor = Ink50
     ) { padding ->
         Column(
             modifier = Modifier
@@ -53,150 +51,126 @@ fun ProfileScreen(
                 .padding(padding),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // ── Hero header ──────────────────────────────────────────────────
+            // ── Header ───────────────────────────────────────────────────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
-                    .background(
-                        Brush.horizontalGradient(listOf(BrandDark, Brand, GradientEnd))
-                    )
+                    .background(Ink900)
+                    .padding(bottom = 52.dp, top = 28.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Canvas(modifier = Modifier.matchParentSize()) {
-                    drawCircle(
-                        color = Surface.copy(alpha = 0.07f),
-                        radius = 120f,
-                        center = Offset(size.width * 0.9f, size.height * 0.2f)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    AvatarInitials(
+                        name = name,
+                        size = 76.dp,
+                        backgroundColor = White.copy(alpha = 0.12f),
+                        textColor = White
                     )
+                    Spacer(Modifier.height(14.dp))
+                    Text(
+                        text = name,
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = White,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.School, contentDescription = null, tint = White.copy(alpha = 0.4f), modifier = Modifier.size(13.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(yearLevel, style = MaterialTheme.typography.bodySmall, color = White.copy(alpha = 0.4f))
+                    }
                 }
             }
 
-            // ── Avatar (overlapping header) ──────────────────────────────────
-            Box(
-                modifier = Modifier
-                    .offset(y = (-50).dp)
-                    .size(100.dp)
-                    .border(4.dp, Surface, CircleShape)
-                    .shadow(8.dp, CircleShape)
-            ) {
-                AvatarInitials(
-                    name = name,
-                    size = 100.dp,
-                    backgroundColor = Brand
-                )
-            }
-
-            Spacer(Modifier.height(-40.dp)) // compensate offset
-
-            Text(
-                text = name,
-                style = MaterialTheme.typography.headlineLarge,
-                color = TextPrimary,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.School, contentDescription = null, tint = Action, modifier = Modifier.size(14.dp))
-                Spacer(Modifier.width(4.dp))
-                Text(yearLevel, style = MaterialTheme.typography.bodySmall, color = Action, fontWeight = FontWeight.SemiBold)
-            }
-
-            Spacer(Modifier.height(20.dp))
-
-            // ── Stats strip ──────────────────────────────────────────────────
-            Row(
+            // ── Stats strip (overlapping) ─────────────────────────────────────
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .background(Surface, RoundedCornerShape(20.dp))
-                    .padding(vertical = 20.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                    .offset(y = (-24).dp)
+                    .padding(horizontal = 20.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = White),
+                elevation = CardDefaults.cardElevation(0.dp),
+                border = BorderStroke(1.dp, Ink200)
             ) {
-                ProfileStat(value = groupsJoined.toString(), label = "Groups Joined")
-                VerticalDivider(modifier = Modifier.height(40.dp), color = Divider)
-                ProfileStat(value = groupsCreated.toString(), label = "Groups Created")
-                VerticalDivider(modifier = Modifier.height(40.dp), color = Divider)
-                ProfileStat(value = "A+", label = "Study Rating")
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 20.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    ProfileStat(value = groupsJoined.toString(), label = "Joined")
+                    VerticalDivider(modifier = Modifier.height(36.dp), color = Ink200)
+                    ProfileStat(value = groupsCreated.toString(), label = "Created")
+                    VerticalDivider(modifier = Modifier.height(36.dp), color = Ink200)
+                    ProfileStat(value = "A+", label = "Rating")
+                }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(-12.dp)) // compensate offset
 
             // ── Info Card ────────────────────────────────────────────────────
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = Surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = White),
+                elevation = CardDefaults.cardElevation(0.dp),
+                border = BorderStroke(1.dp, Ink200)
             ) {
-                Column(modifier = Modifier.padding(24.dp)) {
+                Column(modifier = Modifier.padding(20.dp)) {
                     Text(
                         "Student Information",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = TextPrimary,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.titleSmall,
+                        color = Ink400,
+                        fontWeight = FontWeight.SemiBold
                     )
-                    Spacer(Modifier.height(20.dp))
+                    Spacer(Modifier.height(16.dp))
 
-                    ProfileInfoRow(
-                        icon = Icons.Default.Person,
-                        label = "Full Name",
-                        value = name
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 14.dp), color = Divider)
-                    ProfileInfoRow(
-                        icon = Icons.Default.Email,
-                        label = "Email Address",
-                        value = email
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 14.dp), color = Divider)
-                    ProfileInfoRow(
-                        icon = Icons.Default.School,
-                        label = "Course / Program",
-                        value = course
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 14.dp), color = Divider)
-                    ProfileInfoRow(
-                        icon = Icons.Default.DateRange,
-                        label = "Year Level",
-                        value = yearLevel
-                    )
+                    ProfileInfoRow(icon = Icons.Default.Person, label = "Full Name", value = name)
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 14.dp), color = Ink100)
+                    ProfileInfoRow(icon = Icons.Default.Email, label = "Email", value = email)
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 14.dp), color = Ink100)
+                    ProfileInfoRow(icon = Icons.Default.School, label = "Course", value = course)
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 14.dp), color = Ink100)
+                    ProfileInfoRow(icon = Icons.Default.DateRange, label = "Year Level", value = yearLevel)
                 }
             }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(14.dp))
 
             // ── Enrolled Groups Card ─────────────────────────────────────────
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = Surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = White),
+                elevation = CardDefaults.cardElevation(0.dp),
+                border = BorderStroke(1.dp, Ink200)
             ) {
-                Column(modifier = Modifier.padding(24.dp)) {
+                Column(modifier = Modifier.padding(20.dp)) {
                     Text(
                         "My Study Groups",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = TextPrimary,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.titleSmall,
+                        color = Ink400,
+                        fontWeight = FontWeight.SemiBold
                     )
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(14.dp))
                     listOf(
                         "Algorithm Avengers" to "Data Structures",
                         "DB Detectives" to "Database Management"
-                    ).forEach { (name, subject) ->
-                        GroupMiniRow(name = name, subject = subject)
-                        Spacer(Modifier.height(10.dp))
+                    ).forEach { (gName, subject) ->
+                        GroupMiniRow(name = gName, subject = subject)
+                        Spacer(Modifier.height(8.dp))
                     }
                 }
             }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(14.dp))
 
-            // ── Edit Profile Button ──────────────────────────────────────────
+            // ── Edit Button ──────────────────────────────────────────────────
             PrimaryButton(
                 text = "Edit Profile",
                 onClick = onNavigateToEdit,
@@ -216,14 +190,15 @@ private fun ProfileStat(value: String, label: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = value,
-            style = MaterialTheme.typography.headlineLarge,
-            color = Brand,
+            style = MaterialTheme.typography.headlineMedium,
+            color = Ink900,
             fontWeight = FontWeight.ExtraBold
         )
+        Spacer(Modifier.height(2.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = TextSecondary
+            color = Ink400
         )
     }
 }
@@ -237,17 +212,17 @@ private fun ProfileInfoRow(
     Row(verticalAlignment = Alignment.Top) {
         Box(
             modifier = Modifier
-                .size(36.dp)
-                .background(Brand.copy(alpha = 0.1f), RoundedCornerShape(10.dp)),
+                .size(34.dp)
+                .background(Ink100, RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, contentDescription = null, tint = Brand, modifier = Modifier.size(18.dp))
+            Icon(icon, contentDescription = null, tint = Ink400, modifier = Modifier.size(17.dp))
         }
-        Spacer(Modifier.width(14.dp))
+        Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = Ink400)
             Spacer(Modifier.height(2.dp))
-            Text(value, style = MaterialTheme.typography.bodyMedium, color = TextPrimary, fontWeight = FontWeight.Medium)
+            Text(value, style = MaterialTheme.typography.bodySmall, color = Ink900, fontWeight = FontWeight.Medium)
         }
     }
 }
@@ -257,23 +232,23 @@ private fun GroupMiniRow(name: String, subject: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(SurfaceAlt, RoundedCornerShape(12.dp))
+            .background(Ink50, RoundedCornerShape(10.dp))
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(36.dp)
-                .background(Action.copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
+                .size(34.dp)
+                .background(Ink100, RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.Groups, contentDescription = null, tint = Action, modifier = Modifier.size(18.dp))
+            Icon(Icons.Default.Groups, contentDescription = null, tint = Ink600, modifier = Modifier.size(16.dp))
         }
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(name, style = MaterialTheme.typography.titleSmall, color = TextPrimary, fontWeight = FontWeight.SemiBold)
-            Text(subject, style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+            Text(name, style = MaterialTheme.typography.labelMedium, color = Ink900, fontWeight = FontWeight.SemiBold)
+            Text(subject, style = MaterialTheme.typography.labelSmall, color = Ink400)
         }
-        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = TextHint, modifier = Modifier.size(18.dp))
+        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Ink300, modifier = Modifier.size(16.dp))
     }
 }

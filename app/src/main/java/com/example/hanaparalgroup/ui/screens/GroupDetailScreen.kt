@@ -1,6 +1,7 @@
 package com.example.hanaparalgroup.ui.screens
 
 import androidx.compose.foundation.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.*
@@ -11,8 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.*
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -28,7 +28,6 @@ fun GroupDetailScreen(
     groupId: String,
     onNavigateBack: () -> Unit
 ) {
-    // Placeholder data – replaced by Firestore (Balanag)
     val group = GroupPreview(
         id = groupId,
         name = "Algorithm Avengers",
@@ -57,6 +56,7 @@ fun GroupDetailScreen(
     )
 
     var selectedTab by remember { mutableIntStateOf(0) }
+    val tabs = listOf("Announcements", "Members")
     var showLeaveDialog by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -67,11 +67,11 @@ fun GroupDetailScreen(
                 actions = {
                     if (group.isJoined) {
                         IconButton(onClick = { showLeaveDialog = true }) {
-                            Icon(Icons.Default.ExitToApp, contentDescription = "Leave Group", tint = AlertLight)
+                            Icon(Icons.Default.ExitToApp, contentDescription = "Leave Group", tint = White.copy(alpha = 0.6f))
                         }
                     }
                     IconButton(onClick = { /* share */ }) {
-                        Icon(Icons.Default.Share, contentDescription = "Share", tint = Surface)
+                        Icon(Icons.Default.Share, contentDescription = "Share", tint = White)
                     }
                 }
             )
@@ -80,15 +80,15 @@ fun GroupDetailScreen(
             if (group.isJoined) {
                 FloatingActionButton(
                     onClick = { /* Alora: send announcement trigger */ },
-                    containerColor = Action,
-                    contentColor = Surface,
-                    shape = RoundedCornerShape(18.dp)
+                    containerColor = Ink900,
+                    contentColor = White,
+                    shape = RoundedCornerShape(14.dp)
                 ) {
                     Icon(Icons.Default.Campaign, contentDescription = "Announce")
                 }
             }
         },
-        containerColor = Background
+        containerColor = Ink50
     ) { padding ->
         LazyColumn(
             modifier = Modifier
@@ -96,45 +96,56 @@ fun GroupDetailScreen(
                 .padding(padding),
             contentPadding = PaddingValues(bottom = 100.dp)
         ) {
-            // ── Hero card ────────────────────────────────────────────────────
+            // ── Hero ─────────────────────────────────────────────────────────
             item {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(200.dp)
-                        .background(
-                            Brush.horizontalGradient(listOf(BrandDark, Brand, GradientEnd))
-                        )
+                        .background(Ink900)
+                        .padding(horizontal = 24.dp, vertical = 28.dp)
                 ) {
-                    Canvas(modifier = Modifier.matchParentSize()) {
-                        drawCircle(
-                            color = Surface.copy(alpha = 0.07f),
-                            radius = 150f,
-                            center = Offset(size.width * 0.85f, size.height * 0.2f)
-                        )
-                    }
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(24.dp)
-                    ) {
+                    Column {
+                        // Chips
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            TagChip(text = group.subject, color = ActionLight)
-                            Spacer(Modifier.width(8.dp))
-                            if (group.isJoined) TagChip(text = "✓ Joined", color = SuccessLight)
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = White.copy(alpha = 0.12f)
+                            ) {
+                                Text(
+                                    text = group.subject,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = White.copy(alpha = 0.8f),
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                )
+                            }
+                            if (group.isJoined) {
+                                Spacer(Modifier.width(8.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = Positive.copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        text = "✓ Joined",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = PositiveLight,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                    )
+                                }
+                            }
                         }
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(10.dp))
                         Text(
                             group.name,
-                            style = MaterialTheme.typography.displaySmall,
-                            color = Surface,
-                            fontWeight = FontWeight.Black
+                            style = MaterialTheme.typography.headlineLarge,
+                            color = White,
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = (-0.5).sp
                         )
-                        Spacer(Modifier.height(4.dp))
+                        Spacer(Modifier.height(6.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Person, null, tint = Surface.copy(alpha = 0.7f), modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.Person, null, tint = White.copy(alpha = 0.45f), modifier = Modifier.size(13.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Admin: ${group.adminName}", style = MaterialTheme.typography.bodySmall, color = Surface.copy(alpha = 0.7f))
+                            Text("Admin: ${group.adminName}", style = MaterialTheme.typography.labelSmall, color = White.copy(alpha = 0.45f))
                         }
                     }
                 }
@@ -146,27 +157,24 @@ fun GroupDetailScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     DetailStatChip(
                         icon = Icons.Default.Group,
                         value = "${group.memberCount}/${group.maxMembers}",
                         label = "Members",
-                        color = Brand,
                         modifier = Modifier.weight(1f)
                     )
                     DetailStatChip(
                         icon = Icons.Default.Campaign,
                         value = announcements.size.toString(),
-                        label = "Announcements",
-                        color = Action,
+                        label = "Posts",
                         modifier = Modifier.weight(1f)
                     )
                     DetailStatChip(
                         icon = Icons.Default.CalendarToday,
                         value = "Active",
                         label = "Status",
-                        color = Success,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -175,7 +183,7 @@ fun GroupDetailScreen(
             // ── Join button (if not joined) ──────────────────────────────────
             if (!group.isJoined) {
                 item {
-                    ActionButton(
+                    PrimaryButton(
                         text = "Join This Group",
                         onClick = { /* Balanag: join logic */ },
                         icon = Icons.Default.Add,
@@ -189,34 +197,34 @@ fun GroupDetailScreen(
 
             // ── Tab selector ─────────────────────────────────────────────────
             item {
-                val tabs = listOf("Announcements", "Members")
                 Row(
                     modifier = Modifier
                         .padding(horizontal = 20.dp)
                         .fillMaxWidth()
-                        .background(SurfaceAlt, RoundedCornerShape(14.dp))
-                        .padding(4.dp)
+                        .background(Ink100, RoundedCornerShape(10.dp))
+                        .padding(3.dp)
                 ) {
                     tabs.forEachIndexed { idx, label ->
                         val isSelected = selectedTab == idx
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(if (isSelected) Brand else Color.Transparent)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSelected) White else Color.Transparent)
                                 .clickable { selectedTab = idx }
-                                .padding(vertical = 12.dp),
+                                .padding(vertical = 10.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 label,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = if (isSelected) Surface else TextSecondary
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (isSelected) Ink900 else Ink400,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                             )
                         }
                     }
                 }
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(14.dp))
             }
 
             // ── Announcements tab ────────────────────────────────────────────
@@ -237,7 +245,7 @@ fun GroupDetailScreen(
                             body = ann.body,
                             author = ann.author,
                             timeAgo = ann.timeAgo,
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 5.dp)
                         )
                     }
                 }
@@ -257,30 +265,35 @@ fun GroupDetailScreen(
                         name = member.name,
                         role = member.role,
                         joinedDate = member.joinedDate,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 5.dp)
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
                     )
                 }
             }
         }
     }
 
-    // Leave confirmation dialog
     if (showLeaveDialog) {
         AlertDialog(
             onDismissRequest = { showLeaveDialog = false },
-            icon = { Icon(Icons.Default.ExitToApp, contentDescription = null, tint = Alert) },
-            title = { Text("Leave Group?", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to leave \"${group.name}\"? You can rejoin later if there's space.") },
+            icon = { Icon(Icons.Default.ExitToApp, contentDescription = null, tint = Danger) },
+            title = { Text("Leave Group?", fontWeight = FontWeight.Bold, color = Ink900) },
+            text = { Text("Are you sure you want to leave \"${group.name}\"? You can rejoin later if there's space.", color = Ink400, style = MaterialTheme.typography.bodySmall) },
             confirmButton = {
                 Button(
                     onClick = { showLeaveDialog = false; onNavigateBack() },
-                    colors = ButtonDefaults.buttonColors(containerColor = Alert)
+                    colors = ButtonDefaults.buttonColors(containerColor = Danger),
+                    shape = RoundedCornerShape(10.dp)
                 ) { Text("Leave") }
             },
             dismissButton = {
-                OutlinedButton(onClick = { showLeaveDialog = false }) { Text("Cancel") }
+                OutlinedButton(
+                    onClick = { showLeaveDialog = false },
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, Ink200)
+                ) { Text("Cancel", color = Ink700) }
             },
-            shape = RoundedCornerShape(20.dp)
+            shape = RoundedCornerShape(18.dp),
+            containerColor = White
         )
     }
 }
@@ -290,23 +303,23 @@ private fun DetailStatChip(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     value: String,
     label: String,
-    color: Color,
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Surface),
-        elevation = CardDefaults.cardElevation(2.dp)
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = White),
+        elevation = CardDefaults.cardElevation(0.dp),
+        border = BorderStroke(1.dp, Ink200)
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
+            Icon(icon, contentDescription = null, tint = Ink400, modifier = Modifier.size(18.dp))
             Spacer(Modifier.height(6.dp))
-            Text(value, style = MaterialTheme.typography.titleMedium, color = color, fontWeight = FontWeight.Bold)
-            Text(label, style = MaterialTheme.typography.labelSmall, color = TextSecondary, textAlign = TextAlign.Center)
+            Text(value, style = MaterialTheme.typography.titleSmall, color = Ink900, fontWeight = FontWeight.Bold)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = Ink400, textAlign = TextAlign.Center)
         }
     }
 }
@@ -321,28 +334,28 @@ private fun AnnouncementCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Surface),
-        elevation = CardDefaults.cardElevation(2.dp)
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = White),
+        elevation = CardDefaults.cardElevation(0.dp),
+        border = BorderStroke(1.dp, Ink200)
     ) {
-        Column(modifier = Modifier.padding(18.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .background(Brand.copy(alpha = 0.1f), RoundedCornerShape(10.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.Campaign, null, tint = Brand, modifier = Modifier.size(18.dp))
-                }
-                Spacer(Modifier.width(12.dp))
+                AvatarInitials(
+                    name = author,
+                    size = 36.dp,
+                    backgroundColor = Ink900
+                )
+                Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(title, style = MaterialTheme.typography.titleSmall, color = TextPrimary, fontWeight = FontWeight.Bold)
-                    Text("$author · $timeAgo", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                    Text(author, style = MaterialTheme.typography.labelMedium, color = Ink900, fontWeight = FontWeight.SemiBold)
+                    Text(timeAgo, style = MaterialTheme.typography.labelSmall, color = Ink300)
                 }
             }
             Spacer(Modifier.height(12.dp))
-            Text(body, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
+            Text(title, style = MaterialTheme.typography.titleSmall, color = Ink900, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(4.dp))
+            Text(body, style = MaterialTheme.typography.bodySmall, color = Ink600, lineHeight = 20.sp)
         }
     }
 }
@@ -356,9 +369,10 @@ private fun MemberRow(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Surface),
-        elevation = CardDefaults.cardElevation(1.dp)
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = White),
+        elevation = CardDefaults.cardElevation(0.dp),
+        border = BorderStroke(1.dp, Ink200)
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -366,18 +380,27 @@ private fun MemberRow(
         ) {
             AvatarInitials(
                 name = name,
-                size = 40.dp,
-                backgroundColor = if (role == "Admin") Brand else Action.copy(alpha = 0.7f)
+                size = 38.dp,
+                backgroundColor = if (role == "Admin") Ink900 else Ink200,
+                textColor = if (role == "Admin") White else Ink700
             )
-            Spacer(Modifier.width(14.dp))
+            Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(name, style = MaterialTheme.typography.titleSmall, color = TextPrimary, fontWeight = FontWeight.SemiBold)
-                Text("Joined $joinedDate", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                Text(name, style = MaterialTheme.typography.labelLarge, color = Ink900, fontWeight = FontWeight.SemiBold)
+                Text("Joined $joinedDate", style = MaterialTheme.typography.labelSmall, color = Ink400)
             }
-            TagChip(
-                text = role,
-                color = if (role == "Admin") Brand else Action
-            )
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = if (role == "Admin") Ink900 else Ink100
+            ) {
+                Text(
+                    text = role,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (role == "Admin") White else Ink600,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                )
+            }
         }
     }
 }

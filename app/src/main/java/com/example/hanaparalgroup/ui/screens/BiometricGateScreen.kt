@@ -27,22 +27,21 @@ fun BiometricGateScreen(
 ) {
     var authState by remember { mutableStateOf(BiometricState.IDLE) }
 
-    // Ring animation
     val infiniteTransition = rememberInfiniteTransition(label = "biometric")
     val ringScale by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = 1.15f,
+        targetValue = 1.12f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = FastOutSlowInEasing),
+            animation = tween(1400, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "ring"
     )
     val ringAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.8f,
+        initialValue = 0.08f,
+        targetValue = 0.18f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = FastOutSlowInEasing),
+            animation = tween(1400, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "ringAlpha"
@@ -55,7 +54,7 @@ fun BiometricGateScreen(
                 onNavigateBack = onNavigateBack
             )
         },
-        containerColor = Background
+        containerColor = Ink50
     ) { padding ->
         Column(
             modifier = Modifier
@@ -65,23 +64,23 @@ fun BiometricGateScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Title
             Text(
                 "Biometric Authentication",
-                style = MaterialTheme.typography.headlineLarge,
-                color = TextPrimary,
+                style = MaterialTheme.typography.headlineSmall,
+                color = Ink900,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(6.dp))
             Text(
                 "Only authorized superusers can access remote configuration controls.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
-                textAlign = TextAlign.Center
+                style = MaterialTheme.typography.bodySmall,
+                color = Ink400,
+                textAlign = TextAlign.Center,
+                lineHeight = 20.sp
             )
 
-            Spacer(Modifier.height(60.dp))
+            Spacer(Modifier.height(56.dp))
 
             // Fingerprint visual
             Box(contentAlignment = Alignment.Center) {
@@ -89,22 +88,22 @@ fun BiometricGateScreen(
                 if (authState == BiometricState.IDLE) {
                     Box(
                         modifier = Modifier
-                            .size(160.dp)
+                            .size(150.dp)
                             .scale(ringScale)
                             .alpha(ringAlpha)
-                            .background(Brand.copy(alpha = 0.12f), CircleShape)
+                            .background(Ink900, CircleShape)
                     )
                 }
 
                 // Middle ring
                 Box(
                     modifier = Modifier
-                        .size(130.dp)
+                        .size(118.dp)
                         .background(
                             when (authState) {
-                                BiometricState.SUCCESS -> Success.copy(alpha = 0.15f)
-                                BiometricState.FAILED  -> Alert.copy(alpha = 0.15f)
-                                else                   -> Brand.copy(alpha = 0.08f)
+                                BiometricState.SUCCESS -> PositiveLight
+                                BiometricState.FAILED  -> DangerLight
+                                else                   -> Ink100
                             },
                             CircleShape
                         )
@@ -113,13 +112,13 @@ fun BiometricGateScreen(
                 // Inner button
                 Box(
                     modifier = Modifier
-                        .size(96.dp)
+                        .size(88.dp)
                         .background(
                             when (authState) {
-                                BiometricState.SUCCESS -> Success
-                                BiometricState.FAILED  -> Alert
-                                BiometricState.SCANNING -> Action
-                                else                   -> Brand
+                                BiometricState.SUCCESS  -> Positive
+                                BiometricState.FAILED   -> Danger
+                                BiometricState.SCANNING -> Accent
+                                else                    -> Ink900
                             },
                             CircleShape
                         )
@@ -137,19 +136,18 @@ fun BiometricGateScreen(
                             else                   -> Icons.Default.Fingerprint
                         },
                         contentDescription = "Fingerprint",
-                        tint = Surface,
-                        modifier = Modifier.size(52.dp)
+                        tint = White,
+                        modifier = Modifier.size(46.dp)
                     )
                 }
             }
 
             Spacer(Modifier.height(40.dp))
 
-            // Status label
             AnimatedContent(
                 targetState = authState,
                 transitionSpec = {
-                    fadeIn(tween(300)) togetherWith fadeOut(tween(200))
+                    fadeIn(tween(280)) togetherWith fadeOut(tween(200))
                 },
                 label = "status"
             ) { state ->
@@ -157,56 +155,56 @@ fun BiometricGateScreen(
                     BiometricState.IDLE -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             "Tap the fingerprint icon",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = TextSecondary
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Ink600,
+                            fontWeight = FontWeight.Medium
                         )
                         Text(
                             "to authenticate",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextHint
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Ink400
                         )
                     }
                     BiometricState.SCANNING -> {
                         LaunchedEffect(Unit) {
                             delay(1800)
-                            // Galang: real BiometricPrompt logic here
                             authState = BiometricState.SUCCESS
-                            delay(800)
+                            delay(700)
                             onAuthSuccess()
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator(color = Action, strokeWidth = 3.dp, modifier = Modifier.size(28.dp))
-                            Spacer(Modifier.height(12.dp))
-                            Text("Scanning fingerprint…", style = MaterialTheme.typography.titleMedium, color = Action)
+                            CircularProgressIndicator(color = Accent, strokeWidth = 2.5.dp, modifier = Modifier.size(24.dp))
+                            Spacer(Modifier.height(10.dp))
+                            Text("Scanning…", style = MaterialTheme.typography.labelMedium, color = Accent)
                         }
                     }
                     BiometricState.SUCCESS -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Authentication successful!", style = MaterialTheme.typography.titleMedium, color = Success, fontWeight = FontWeight.Bold)
-                        Text("Redirecting to Superuser panel…", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                        Text("Authenticated", style = MaterialTheme.typography.labelMedium, color = Positive, fontWeight = FontWeight.Bold)
+                        Text("Redirecting to Superuser panel…", style = MaterialTheme.typography.labelSmall, color = Ink400)
                     }
                     BiometricState.FAILED -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Authentication failed", style = MaterialTheme.typography.titleMedium, color = Alert, fontWeight = FontWeight.Bold)
-                        Text("Tap to try again", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                        Text("Authentication failed", style = MaterialTheme.typography.labelMedium, color = Danger, fontWeight = FontWeight.Bold)
+                        Text("Tap to try again", style = MaterialTheme.typography.labelSmall, color = Ink400)
                     }
                 }
             }
 
             Spacer(Modifier.height(48.dp))
 
-            // Use PIN alternative
             OutlinedSecondaryButton(
                 text = "Use PIN Instead",
                 onClick = { /* Galang: fallback auth */ },
                 icon = Icons.Default.Pin,
+                color = Ink900,
                 modifier = Modifier.fillMaxWidth(0.65f)
             )
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(14.dp))
 
             Text(
                 "Protected by Android Biometric API",
                 style = MaterialTheme.typography.labelSmall,
-                color = TextHint
+                color = Ink300
             )
         }
     }

@@ -13,6 +13,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import com.example.hanaparalgroup.ui.components.*
 import com.example.hanaparalgroup.ui.theme.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 
 private data class NotifItem(
     val id: Int,
@@ -47,13 +49,13 @@ fun NotificationsScreen(onNavigateBack: () -> Unit) {
                 actions = {
                     if (unreadCount > 0) {
                         TextButton(onClick = { notifications.forEach { it.isRead = true } }) {
-                            Text("Mark all read", color = ActionLight, style = MaterialTheme.typography.labelLarge)
+                            Text("Mark all read", color = White.copy(alpha = 0.7f), style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }
             )
         },
-        containerColor = Background
+        containerColor = Ink50
     ) { padding ->
         if (notifications.isEmpty()) {
             Box(
@@ -64,7 +66,7 @@ fun NotificationsScreen(onNavigateBack: () -> Unit) {
             ) {
                 EmptyState(
                     icon = Icons.Outlined.NotificationsOff,
-                    title = "All Caught Up!",
+                    title = "All caught up",
                     subtitle = "No notifications yet. We'll alert you when something happens."
                 )
             }
@@ -85,7 +87,6 @@ fun NotificationsScreen(onNavigateBack: () -> Unit) {
                     }
                 }
 
-                // Unread section
                 val unread = notifications.filter { !it.isRead }
                 val read = notifications.filter { it.isRead }
 
@@ -93,9 +94,9 @@ fun NotificationsScreen(onNavigateBack: () -> Unit) {
                     item {
                         Text(
                             "New",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = TextPrimary,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Ink400,
+                            fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
                         )
                     }
@@ -107,7 +108,7 @@ fun NotificationsScreen(onNavigateBack: () -> Unit) {
                             type = notif.type,
                             isRead = notif.isRead,
                             onClick = { notifications[notifications.indexOfFirst { it.id == notif.id }].isRead = true },
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 5.dp)
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
                         )
                     }
                 }
@@ -116,9 +117,9 @@ fun NotificationsScreen(onNavigateBack: () -> Unit) {
                     item {
                         Text(
                             "Earlier",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = TextSecondary,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Ink400,
+                            fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
                         )
                     }
@@ -130,7 +131,7 @@ fun NotificationsScreen(onNavigateBack: () -> Unit) {
                             type = notif.type,
                             isRead = notif.isRead,
                             onClick = {},
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 5.dp)
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
                         )
                     }
                 }
@@ -143,20 +144,21 @@ fun NotificationsScreen(onNavigateBack: () -> Unit) {
 private fun NotifSummaryStrip(unreadCount: Int, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Action.copy(alpha = 0.1f)),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Action.copy(alpha = 0.3f))
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = AccentSoft),
+        border = BorderStroke(1.dp, Accent.copy(alpha = 0.2f)),
+        elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            PulsingDot(color = Action)
+            PulsingDot(color = Accent)
             Spacer(Modifier.width(10.dp))
             Text(
                 "$unreadCount unread notification${if (unreadCount > 1) "s" else ""}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Action,
+                style = MaterialTheme.typography.labelMedium,
+                color = Accent,
                 fontWeight = FontWeight.SemiBold
             )
         }

@@ -11,10 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.*
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
@@ -26,150 +23,118 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
     var isLoading by remember { mutableStateOf(false) }
     var contentVisible by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        contentVisible = true
-    }
+    LaunchedEffect(Unit) { contentVisible = true }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // ── Background ───────────────────────────────────────────────────────
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colorStops = arrayOf(
-                            0.0f to BrandDark,
-                            0.45f to Brand,
-                            1.0f to Background
-                        )
-                    )
-                )
-        )
-
-        // Decorative wave overlay
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val w = size.width
-            val h = size.height
-            drawCircle(
-                color = Surface.copy(alpha = 0.06f),
-                radius = w * 0.7f,
-                center = Offset(w * 1.1f, h * 0.25f)
-            )
-            drawCircle(
-                color = Action.copy(alpha = 0.08f),
-                radius = w * 0.5f,
-                center = Offset(-w * 0.15f, h * 0.35f)
-            )
-        }
-
-        // ── Scrollable content ───────────────────────────────────────────────
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Ink50)
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Hero section
-            AnimatedVisibility(
-                visible = contentVisible,
-                enter = fadeIn(tween(700)) + slideInVertically(
-                    initialOffsetY = { -60 },
-                    animationSpec = tween(700, easing = EaseOutCubic)
-                )
+            // ── Top section — dark header ────────────────────────────────────
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Ink900)
+                    .padding(top = 72.dp, bottom = 52.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 72.dp, bottom = 40.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                this@Column.AnimatedVisibility(
+                    visible = contentVisible,
+                    enter = fadeIn(tween(600)) + slideInVertically(
+                        initialOffsetY = { -32 },
+                        animationSpec = tween(600, easing = FastOutSlowInEasing)
+                    )
                 ) {
-                    // Logo
-                    Box(
-                        modifier = Modifier
-                            .size(90.dp)
-                            .background(Surface.copy(alpha = 0.15f), RoundedCornerShape(28.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        // Logo mark
                         Box(
                             modifier = Modifier
-                                .size(66.dp)
-                                .background(Surface, RoundedCornerShape(20.dp)),
+                                .size(64.dp)
+                                .background(White, RoundedCornerShape(18.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.School,
                                 contentDescription = null,
-                                tint = Brand,
-                                modifier = Modifier.size(40.dp)
+                                tint = Ink900,
+                                modifier = Modifier.size(36.dp)
                             )
                         }
+
+                        Spacer(Modifier.height(20.dp))
+
+                        Text(
+                            text = "HanapAral",
+                            style = MaterialTheme.typography.headlineLarge,
+                            color = White,
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = (-0.5).sp
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = "GROUP",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = White.copy(alpha = 0.4f),
+                            letterSpacing = 5.sp
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        Text(
+                            text = "Your cloud-based study companion",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = White.copy(alpha = 0.5f)
+                        )
                     }
-
-                    Spacer(Modifier.height(24.dp))
-
-                    Text(
-                        text = "HanapAral",
-                        style = MaterialTheme.typography.displaySmall,
-                        color = Surface,
-                        fontWeight = FontWeight.Black
-                    )
-                    Text(
-                        text = "GROUP",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = ActionLight,
-                        letterSpacing = 5.sp
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        text = "Your cloud-based study companion",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Surface.copy(alpha = 0.7f)
-                    )
                 }
             }
 
             // ── Card section ─────────────────────────────────────────────────
             AnimatedVisibility(
                 visible = contentVisible,
-                enter = fadeIn(tween(700, delayMillis = 200)) + slideInVertically(
-                    initialOffsetY = { 100 },
-                    animationSpec = tween(700, delayMillis = 200, easing = EaseOutCubic)
+                enter = fadeIn(tween(600, delayMillis = 150)) + slideInVertically(
+                    initialOffsetY = { 60 },
+                    animationSpec = tween(600, delayMillis = 150, easing = FastOutSlowInEasing)
                 )
             ) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp),
-                    shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 24.dp, bottomEnd = 24.dp),
-                    colors = CardDefaults.cardColors(containerColor = Surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
+                        .offset(y = (-20).dp)
+                        .padding(horizontal = 20.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    border = BorderStroke(1.dp, Ink200)
                 ) {
                     Column(
-                        modifier = Modifier.padding(32.dp),
+                        modifier = Modifier.padding(28.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "Welcome Back!",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = TextPrimary,
+                            text = "Welcome back",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = Ink900,
                             fontWeight = FontWeight.Bold
                         )
-                        Spacer(Modifier.height(6.dp))
+                        Spacer(Modifier.height(4.dp))
                         Text(
                             text = "Sign in to access your study groups",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextSecondary,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Ink400,
                             textAlign = TextAlign.Center
                         )
 
-                        Spacer(Modifier.height(36.dp))
+                        Spacer(Modifier.height(28.dp))
 
-                        // Google Sign-In Button (styled)
+                        // Google Sign-In Button
                         GoogleSignInButton(
                             onClick = {
                                 isLoading = true
-                                // Auth logic by Galang
-                                // Simulated for UI only:
                                 onLoginSuccess()
                             },
                             isLoading = isLoading,
@@ -177,54 +142,40 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                         )
 
                         Spacer(Modifier.height(24.dp))
-
                         LabeledDivider(label = "OR")
-
                         Spacer(Modifier.height(24.dp))
 
                         // Feature highlights
-                        FeatureHighlight(
-                            icon = Icons.Default.Groups,
-                            text = "Join & create study groups instantly"
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        FeatureHighlight(
-                            icon = Icons.Default.Notifications,
-                            text = "Real-time notifications for your groups"
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        FeatureHighlight(
-                            icon = Icons.Default.CloudSync,
-                            text = "Everything synced across your devices"
-                        )
+                        FeatureHighlight(icon = Icons.Default.Groups, text = "Join & create study groups instantly")
+                        Spacer(Modifier.height(10.dp))
+                        FeatureHighlight(icon = Icons.Default.Notifications, text = "Real-time notifications for your groups")
+                        Spacer(Modifier.height(10.dp))
+                        FeatureHighlight(icon = Icons.Default.CloudSync, text = "Everything synced across your devices")
 
-                        Spacer(Modifier.height(32.dp))
+                        Spacer(Modifier.height(28.dp))
 
                         Text(
                             text = "By signing in, you agree to our Terms of Service and Privacy Policy.",
                             style = MaterialTheme.typography.labelSmall,
-                            color = TextHint,
-                            textAlign = TextAlign.Center
+                            color = Ink300,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 17.sp
                         )
                     }
                 }
             }
 
-            Spacer(Modifier.height(40.dp))
+            Spacer(Modifier.height(24.dp))
 
-            // Footer
             Text(
                 text = "University of Cabuyao · CCS",
                 style = MaterialTheme.typography.labelSmall,
-                color = Surface.copy(alpha = 0.4f)
+                color = Ink300
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(32.dp))
         }
 
-        // Loading overlay
-        if (isLoading) {
-            LoadingOverlay(message = "Signing you in...")
-        }
+        if (isLoading) LoadingOverlay(message = "Signing you in...")
     }
 }
 
@@ -236,49 +187,41 @@ private fun GoogleSignInButton(
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.height(56.dp),
-        shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.5.dp, Divider),
+        modifier = modifier.height(50.dp),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, Ink200),
         colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = Surface,
-            contentColor = TextPrimary
+            containerColor = White,
+            contentColor = Ink900
         ),
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
     ) {
         if (isLoading) {
             CircularProgressIndicator(
-                modifier = Modifier.size(20.dp),
-                color = Brand,
+                modifier = Modifier.size(18.dp),
+                color = Ink900,
                 strokeWidth = 2.dp
             )
         } else {
-            // Google "G" logo approximation with colored box
+            // Google G
             Box(
                 modifier = Modifier
-                    .size(24.dp)
-                    .background(
-                        Brush.sweepGradient(
-                            listOf(
-                                Color(0xFF4285F4), Color(0xFF34A853),
-                                Color(0xFFFBBC05), Color(0xFFEA4335), Color(0xFF4285F4)
-                            )
-                        ),
-                        CircleShape
-                    ),
+                    .size(20.dp)
+                    .background(Ink100, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "G",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Surface,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Ink900,
                     fontWeight = FontWeight.ExtraBold
                 )
             }
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(10.dp))
             Text(
                 text = "Continue with Google",
-                style = MaterialTheme.typography.titleMedium,
-                color = TextPrimary,
+                style = MaterialTheme.typography.labelLarge,
+                color = Ink900,
                 fontWeight = FontWeight.SemiBold
             )
         }
@@ -287,18 +230,24 @@ private fun GoogleSignInButton(
 
 @Composable
 private fun FeatureHighlight(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Box(
             modifier = Modifier
-                .size(36.dp)
-                .background(Action.copy(alpha = 0.1f), RoundedCornerShape(10.dp)),
+                .size(34.dp)
+                .background(Ink100, RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, contentDescription = null, tint = Action, modifier = Modifier.size(18.dp))
+            Icon(icon, contentDescription = null, tint = Ink700, modifier = Modifier.size(17.dp))
         }
         Spacer(Modifier.width(12.dp))
-        Text(text, style = MaterialTheme.typography.bodySmall, color = TextSecondary, modifier = Modifier.weight(1f))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = Ink600,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
-
-private val EaseOutCubic = CubicBezierEasing(0.33f, 1f, 0.68f, 1f)

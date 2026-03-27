@@ -14,7 +14,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.*
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
@@ -49,8 +48,8 @@ fun DashboardScreen(
     onNavigateToCreateGroup: () -> Unit,
     onNavigateToGroupDetail: (String) -> Unit
 ) {
-    val userName = "Alex Aropo"   // placeholder; replaced by Firestore data later
-    val unreadCount = 3           // placeholder for FCM badge
+    val userName = "Alex Aropo"
+    val unreadCount = 3
 
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("My Groups", "Discover")
@@ -66,24 +65,17 @@ fun DashboardScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
+            ExtendedFloatingActionButton(
                 onClick = onNavigateToCreateGroup,
-                containerColor = Action,
-                contentColor = Surface,
-                shape = RoundedCornerShape(18.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 20.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("New Group", style = MaterialTheme.typography.labelLarge)
-                }
-            }
+                containerColor = Ink900,
+                contentColor = White,
+                shape = RoundedCornerShape(14.dp),
+                icon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                text = { Text("New Group", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold) }
+            )
         },
         floatingActionButtonPosition = FabPosition.End,
-        containerColor = Background
+        containerColor = Ink50
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
@@ -102,13 +94,13 @@ fun DashboardScreen(
             // ── Stats Row ────────────────────────────────────────────────────
             item {
                 StatsRow(
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
                 )
             }
 
             // ── Tab Selector ─────────────────────────────────────────────────
             item {
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(4.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -118,12 +110,13 @@ fun DashboardScreen(
                 ) {
                     Text(
                         "Study Groups",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = TextPrimary
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Ink900,
+                        fontWeight = FontWeight.Bold
                     )
                     TextButton(onClick = onNavigateToGroups) {
-                        Text("See All", color = Action, style = MaterialTheme.typography.labelLarge)
-                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Action, modifier = Modifier.size(16.dp))
+                        Text("See all", color = Ink400, style = MaterialTheme.typography.labelSmall)
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Ink400, modifier = Modifier.size(14.dp))
                     }
                 }
 
@@ -133,8 +126,8 @@ fun DashboardScreen(
                 Row(
                     modifier = Modifier
                         .padding(horizontal = 20.dp)
-                        .background(SurfaceAlt, RoundedCornerShape(12.dp))
-                        .padding(4.dp),
+                        .background(Ink100, RoundedCornerShape(10.dp))
+                        .padding(3.dp),
                     horizontalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
                     tabs.forEachIndexed { idx, label ->
@@ -142,16 +135,17 @@ fun DashboardScreen(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(if (isSelected) Brand else Color.Transparent)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSelected) White else Color.Transparent)
                                 .clickable { selectedTab = idx }
-                                .padding(vertical = 10.dp),
+                                .padding(vertical = 9.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = label,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = if (isSelected) Surface else TextSecondary
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (isSelected) Ink900 else Ink400,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                             )
                         }
                     }
@@ -195,21 +189,21 @@ fun DashboardScreen(
                         isJoined = group.isJoined,
                         onClick = { onNavigateToGroupDetail(group.id) },
                         onJoinClick = { /* Balanag: join logic */ },
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
                     )
                 }
             }
 
-            // ── Quick Notification preview ───────────────────────────────────
+            // ── Recent Activity ──────────────────────────────────────────────
             item {
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(20.dp))
                 SectionHeader(
                     title = "Recent Activity",
                     action = "View All",
                     onActionClick = onNavigateToNotifications,
                     modifier = Modifier.padding(horizontal = 20.dp)
                 )
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(10.dp))
             }
 
             val sampleNotifs = listOf(
@@ -220,9 +214,9 @@ fun DashboardScreen(
 
             items(sampleNotifs) { (title, body, time) ->
                 val type = when {
-                    title.contains("Member") -> NotificationType.NEW_MEMBER
+                    title.contains("Member")   -> NotificationType.NEW_MEMBER
                     title.contains("Reminder") -> NotificationType.REMINDER
-                    else -> NotificationType.ANNOUNCEMENT
+                    else                       -> NotificationType.ANNOUNCEMENT
                 }
                 NotificationItem(
                     title = title,
@@ -231,7 +225,7 @@ fun DashboardScreen(
                     type = type,
                     isRead = false,
                     onClick = { onNavigateToNotifications() },
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 5.dp)
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
                 )
             }
         }
@@ -251,18 +245,26 @@ private fun DashboardTopBar(
     TopAppBar(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.School,
-                    contentDescription = null,
-                    tint = ActionLight,
-                    modifier = Modifier.size(22.dp)
-                )
-                Spacer(Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .background(White, RoundedCornerShape(8.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.School,
+                        contentDescription = null,
+                        tint = Ink900,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                Spacer(Modifier.width(10.dp))
                 Text(
                     "HanapAral",
                     style = MaterialTheme.typography.titleLarge,
-                    color = Surface,
-                    fontWeight = FontWeight.Bold
+                    color = White,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.3).sp
                 )
             }
         },
@@ -270,32 +272,33 @@ private fun DashboardTopBar(
             // Notification bell with badge
             Box {
                 IconButton(onClick = onNotifClick) {
-                    Icon(Icons.Outlined.Notifications, contentDescription = "Notifications", tint = Surface)
+                    Icon(Icons.Outlined.Notifications, contentDescription = "Notifications", tint = White)
                 }
                 if (unreadCount > 0) {
                     Badge(
-                        containerColor = Alert,
-                        contentColor = Surface,
-                        modifier = Modifier.offset(x = (-4).dp, y = 4.dp).align(Alignment.TopEnd)
+                        containerColor = Danger,
+                        contentColor = White,
+                        modifier = Modifier
+                            .offset(x = (-4).dp, y = 4.dp)
+                            .align(Alignment.TopEnd)
                     ) {
                         Text(unreadCount.toString(), style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
-            // Avatar / profile
             IconButton(onClick = onProfileClick) {
                 AvatarInitials(
                     name = userName,
-                    size = 34.dp,
-                    backgroundColor = ActionLight
+                    size = 32.dp,
+                    backgroundColor = White.copy(alpha = 0.15f),
+                    textColor = White
                 )
             }
-            // Superuser (admin hidden action via long press on logo or settings icon)
             IconButton(onClick = onSuperuserClick) {
-                Icon(Icons.Default.AdminPanelSettings, contentDescription = "Superuser", tint = Surface.copy(alpha = 0.7f))
+                Icon(Icons.Default.AdminPanelSettings, contentDescription = "Superuser", tint = White.copy(alpha = 0.5f))
             }
         },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = Brand)
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = Ink900)
     )
 }
 
@@ -305,71 +308,49 @@ private fun HeroBanner(userName: String, onNavigateToGroups: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(180.dp)
-            .background(
-                Brush.horizontalGradient(
-                    colors = listOf(BrandDark, Brand, GradientEnd)
-                )
-            )
+            .background(Ink900)
+            .padding(horizontal = 24.dp, vertical = 28.dp)
     ) {
-        // Decorative circles
-        Canvas(modifier = Modifier.matchParentSize()) {
-            drawCircle(
-                color = Surface.copy(alpha = 0.07f),
-                radius = 160f,
-                center = Offset(size.width * 0.85f, size.height * 0.2f)
-            )
-            drawCircle(
-                color = Action.copy(alpha = 0.1f),
-                radius = 100f,
-                center = Offset(size.width * 0.75f, size.height * 0.9f)
-            )
-        }
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .padding(24.dp)
-        ) {
+        Column {
             Text(
                 text = "Hello, ${userName.split(" ").first()} 👋",
-                style = MaterialTheme.typography.headlineSmall,
-                color = Surface.copy(alpha = 0.8f)
+                style = MaterialTheme.typography.bodyMedium,
+                color = White.copy(alpha = 0.55f)
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 text = "Ready to\nstudy today?",
-                style = MaterialTheme.typography.displaySmall,
-                color = Surface,
-                fontWeight = FontWeight.Black,
-                lineHeight = 34.sp
+                style = MaterialTheme.typography.headlineLarge,
+                color = White,
+                fontWeight = FontWeight.ExtraBold,
+                lineHeight = 32.sp,
+                letterSpacing = (-0.5).sp
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(20.dp))
             OutlinedButton(
                 onClick = onNavigateToGroups,
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, Surface.copy(alpha = 0.5f)),
+                shape = RoundedCornerShape(10.dp),
+                border = BorderStroke(1.dp, White.copy(alpha = 0.25f)),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Surface.copy(alpha = 0.15f),
-                    contentColor = Surface
+                    containerColor = White.copy(alpha = 0.1f),
+                    contentColor = White
                 ),
-                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp)
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(15.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Find Groups", style = MaterialTheme.typography.labelLarge)
+                Text("Find Groups", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
             }
         }
 
-        // Decorative icon
         Icon(
             imageVector = Icons.Default.Groups,
             contentDescription = null,
-            tint = Surface.copy(alpha = 0.08f),
+            tint = White.copy(alpha = 0.06f),
             modifier = Modifier
-                .size(140.dp)
+                .size(120.dp)
                 .align(Alignment.CenterEnd)
-                .offset(x = 20.dp)
+                .offset(x = 12.dp)
         )
     }
 }
@@ -379,27 +360,27 @@ private fun HeroBanner(userName: String, onNavigateToGroups: () -> Unit) {
 private fun StatsRow(modifier: Modifier = Modifier) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         StatCard(
             label = "My Groups",
             value = "2",
             icon = Icons.Default.Groups,
-            color = Brand,
+            color = Ink900,
             modifier = Modifier.weight(1f)
         )
         StatCard(
             label = "Available",
             value = "12",
             icon = Icons.Default.Explore,
-            color = Action,
+            color = Ink900,
             modifier = Modifier.weight(1f)
         )
         StatCard(
             label = "Alerts",
             value = "3",
             icon = Icons.Default.Notifications,
-            color = Alert,
+            color = Ink900,
             modifier = Modifier.weight(1f)
         )
     }
