@@ -12,22 +12,24 @@ import androidx.compose.ui.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.hanaparalgroup.ui.components.*
 import com.example.hanaparalgroup.ui.theme.*
+import com.example.hanaparalgroup.viewmodel.RemoteConfigViewModel
 
 @Composable
-fun SuperuserScreen(onNavigateBack: () -> Unit) {
-    // Remote Config values (Cativo: replace with actual Firebase Remote Config bindings)
-    var groupCreationEnabled by remember { mutableStateOf(true) }
-    var maxMembersOverride by remember { mutableStateOf(15) }
-    var announcementHeader by remember { mutableStateOf("📢 Study Smart, Excel Together!") }
-    var notificationsEnabled by remember { mutableStateOf(true) }
-    var maintenanceMode by remember { mutableStateOf(false) }
+fun SuperuserScreen(
+    onNavigateBack: () -> Unit,
+    viewModel: RemoteConfigViewModel = viewModel()
+) {
+    val groupCreationEnabled by viewModel.groupCreationEnabled.collectAsState()
+    val maxMembersLimit by viewModel.maxMembersLimit.collectAsState()
+    val announcementHeader by viewModel.announcementHeader.collectAsState()
+    val maintenanceMode by viewModel.maintenanceMode.collectAsState()
 
-    var isSaving by remember { mutableStateOf(false) }
-    var showSuccessSnackbar by remember { mutableStateOf(false) }
-
+    var isFetching by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     Scaffold(
@@ -37,89 +39,65 @@ fun SuperuserScreen(onNavigateBack: () -> Unit) {
                 onNavigateBack = onNavigateBack,
                 actions = {
                     IconButton(onClick = {
-                        isSaving = true
-                        // Cativo: push changes to Firebase Remote Config
-                        isSaving = false
-                        showSuccessSnackbar = true
+                        isFetching = true
+                        viewModel.fetchAndActivate()
+                        // Simple delay to simulate network for UX, actual state updates via Flow
+                        isFetching = false 
                     }) {
-                        Icon(Icons.Default.CloudUpload, contentDescription = "Push Config", tint = ActionLight)
+                        Icon(Icons.Default.Refresh, contentDescription = "Refresh Config", tint = White)
                     }
                 }
             )
         },
-        snackbarHost = {
-            SnackbarHost(snackbarHostState) { data ->
-                Snackbar(
-                    snackbarData = data,
-                    containerColor = Success,
-                    contentColor = Surface,
-                    shape = RoundedCornerShape(12.dp)
-                )
-            }
-        },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Background
     ) { padding ->
-        LaunchedEffect(showSuccessSnackbar) {
-            if (showSuccessSnackbar) {
-                snackbarHostState.showSnackbar("✓ Config pushed successfully!")
-                showSuccessSnackbar = false
-            }
-        }
-
         Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
-                contentPadding = PaddingValues(bottom = 40.dp),
-                verticalArrangement = Arrangement.spacedBy(0.dp)
+                contentPadding = PaddingValues(bottom = 40.dp)
             ) {
-                // ── Admin badge ──────────────────────────────────────────────
                 item {
                     SuperuserBadge(modifier = Modifier.padding(20.dp))
                 }
 
-                // ── Feature Toggles ──────────────────────────────────────────
                 item {
                     SectionCard(title = "Feature Controls", icon = Icons.Default.ToggleOn) {
                         ConfigToggleRow(
                             label = "Group Creation",
                             description = "Allow users to create new study groups",
                             checked = groupCreationEnabled,
-                            onCheckedChange = { groupCreationEnabled = it }
+                            onCheckedChange = { },
+                            enabled = false
                         )
-                        HorizontalDivider(color = Divider, modifier = Modifier.padding(vertical = 4.dp))
-                        ConfigToggleRow(
-                            label = "Push Notifications",
-                            description = "Enable FCM notifications for all users",
-                            checked = notificationsEnabled,
-                            onCheckedChange = { notificationsEnabled = it }
-                        )
-                        HorizontalDivider(color = Divider, modifier = Modifier.padding(vertical = 4.dp))
+                        HorizontalDivider(color = Ink50, modifier = Modifier.padding(vertical = 4.dp))
                         ConfigToggleRow(
                             label = "Maintenance Mode",
                             description = "Show maintenance screen to regular users",
                             checked = maintenanceMode,
-                            onCheckedChange = { maintenanceMode = it }
+                            onCheckedChange = { },
+                            enabled = false
                         )
                         if (maintenanceMode) {
                             Spacer(Modifier.height(8.dp))
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.cardColors(containerColor = Alert.copy(alpha = 0.1f)),
-                                border = BorderStroke(1.dp, Alert.copy(alpha = 0.4f))
+                                colors = CardDefaults.cardColors(containerColor = Danger.copy(alpha = 0.05f)),
+                                border = BorderStroke(1.dp, Danger.copy(alpha = 0.2f))
                             ) {
                                 Row(
                                     modifier = Modifier.padding(12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(Icons.Default.Warning, null, tint = Alert, modifier = Modifier.size(18.dp))
+                                    Icon(Icons.Default.Warning, null, tint = Danger, modifier = Modifier.size(18.dp))
                                     Spacer(Modifier.width(8.dp))
                                     Text(
                                         "All regular users will see a maintenance screen!",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = Alert,
+                                        color = Danger,
                                         fontWeight = FontWeight.SemiBold
                                     )
                                 }
@@ -128,7 +106,6 @@ fun SuperuserScreen(onNavigateBack: () -> Unit) {
                     }
                 }
 
-                // ── Member Limits ────────────────────────────────────────────
                 item {
                     SectionCard(title = "Group Limits", icon = Icons.Default.Group) {
                         Row(
@@ -137,130 +114,62 @@ fun SuperuserScreen(onNavigateBack: () -> Unit) {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column {
-                                Text("Max Members per Group", style = MaterialTheme.typography.titleSmall, color = TextPrimary)
-                                Text("Applied app-wide without update", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                                Text("Max Members per Group", style = MaterialTheme.typography.titleSmall, color = Ink900, fontWeight = FontWeight.SemiBold)
+                                Text("Managed via Firebase Console", style = MaterialTheme.typography.bodySmall, color = Ink400)
                             }
-                            Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = Brand.copy(alpha = 0.12f)
-                            ) {
+                            Surface(shape = RoundedCornerShape(12.dp), color = Ink100) {
                                 Text(
-                                    "$maxMembersOverride",
+                                    "$maxMembersLimit",
                                     style = MaterialTheme.typography.headlineSmall,
-                                    color = Brand,
+                                    color = Ink900,
                                     fontWeight = FontWeight.ExtraBold,
                                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                                 )
                             }
                         }
-                        Spacer(Modifier.height(16.dp))
-
-                        // Preset buttons
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf(10, 15, 20, 30).forEach { value ->
-                                FilterChip(
-                                    selected = maxMembersOverride == value,
-                                    onClick = { maxMembersOverride = value },
-                                    label = { Text("$value", style = MaterialTheme.typography.labelLarge) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = Brand,
-                                        selectedLabelColor = Surface,
-                                        containerColor = SurfaceAlt,
-                                        labelColor = TextSecondary
-                                    ),
-                                    border = FilterChipDefaults.filterChipBorder(
-                                        enabled = true,
-                                        selected = maxMembersOverride == value,
-                                        selectedBorderColor = Brand,
-                                        borderColor = Divider
-                                    )
-                                )
-                            }
-                        }
-                        Spacer(Modifier.height(12.dp))
-                        Slider(
-                            value = maxMembersOverride.toFloat(),
-                            onValueChange = { maxMembersOverride = it.toInt() },
-                            valueRange = 5f..50f,
-                            steps = 44,
-                            colors = SliderDefaults.colors(
-                                thumbColor = Brand,
-                                activeTrackColor = Brand,
-                                inactiveTrackColor = SurfaceAlt
-                            )
-                        )
                     }
                 }
 
-                // ── Global Announcement Header ───────────────────────────────
                 item {
                     SectionCard(title = "App Announcement Header", icon = Icons.Default.Campaign) {
-                        Text(
-                            "This header appears at the top of the Dashboard for all users.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextSecondary
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        BrandedTextField(
-                            value = announcementHeader,
-                            onValueChange = { announcementHeader = it },
-                            label = "Announcement Header",
-                            leadingIcon = Icons.Default.Edit,
-                            singleLine = false,
-                            maxLines = 3
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        // Preview
-                        Text("Preview:", style = MaterialTheme.typography.labelSmall, color = TextHint)
-                        Spacer(Modifier.height(6.dp))
+                        Text("Preview of the dashboard banner:", style = MaterialTheme.typography.bodySmall, color = Ink400)
+                        Spacer(Modifier.height(16.dp))
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = Action.copy(alpha = 0.1f)),
-                            border = BorderStroke(1.dp, Action.copy(alpha = 0.3f))
+                            colors = CardDefaults.cardColors(containerColor = AccentSoft),
+                            border = BorderStroke(1.dp, Accent.copy(alpha = 0.2f))
                         ) {
-                            Text(
-                                text = announcementHeader.ifEmpty { "(empty – banner hidden)" },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (announcementHeader.isEmpty()) TextHint else TextPrimary,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(14.dp)
-                            )
+                            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Info, null, tint = Accent, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(12.dp))
+                                Text(
+                                    text = announcementHeader.ifEmpty { "(No active announcement)" },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (announcementHeader.isEmpty()) Ink400 else Ink900,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
                     }
                 }
 
-                // ── Push Config Button ───────────────────────────────────────
                 item {
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(16.dp))
                     PrimaryButton(
-                        text = "Push Configuration",
-                        onClick = {
-                            isSaving = true
-                            // Cativo: Firebase Remote Config update
-                            isSaving = false
-                            showSuccessSnackbar = true
-                        },
-                        icon = Icons.Default.CloudUpload,
-                        isLoading = isSaving,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp)
+                        text = "Sync from Cloud",
+                        onClick = { viewModel.fetchAndActivate() },
+                        icon = Icons.Default.CloudDownload,
+                        isLoading = isFetching,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
                     )
-                    Spacer(Modifier.height(8.dp))
-                    ActionButton(
-                        text = "Reset to Defaults",
-                        onClick = {
-                            groupCreationEnabled = true
-                            maxMembersOverride = 15
-                            announcementHeader = "📢 Study Smart, Excel Together!"
-                            notificationsEnabled = true
-                            maintenanceMode = false
-                        },
-                        icon = Icons.Default.RestartAlt,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp)
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "Values are read-only here. Use the Firebase Console to make changes.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Ink300,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 40.dp)
                     )
                 }
             }
@@ -273,35 +182,19 @@ private fun SuperuserBadge(modifier: Modifier = Modifier) {
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Brand
-        )
+        colors = CardDefaults.cardColors(containerColor = Ink900)
     ) {
-        Row(
-            modifier = Modifier.padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .background(Surface.copy(alpha = 0.15f), RoundedCornerShape(16.dp)),
+                modifier = Modifier.size(52.dp).background(White.copy(alpha = 0.15f), RoundedCornerShape(16.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.AdminPanelSettings, null, tint = Surface, modifier = Modifier.size(30.dp))
+                Icon(Icons.Default.AdminPanelSettings, null, tint = White, modifier = Modifier.size(30.dp))
             }
             Spacer(Modifier.width(16.dp))
             Column {
-                Text(
-                    "Superuser Panel",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Surface,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "Changes apply instantly · No app restart needed",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Surface.copy(alpha = 0.7f)
-                )
+                Text("Superuser Panel", style = MaterialTheme.typography.titleLarge, color = White, fontWeight = FontWeight.Bold)
+                Text("Cloud Configuration Monitoring", style = MaterialTheme.typography.bodySmall, color = White.copy(alpha = 0.7f))
             }
         }
     }
@@ -315,27 +208,20 @@ private fun SectionCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 8.dp),
+        modifier = modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Surface),
-        elevation = CardDefaults.cardElevation(2.dp)
+        colors = CardDefaults.cardColors(containerColor = White),
+        border = BorderStroke(1.dp, Ink100)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .background(Brand.copy(alpha = 0.1f), RoundedCornerShape(10.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(icon, null, tint = Brand, modifier = Modifier.size(20.dp))
+                Box(modifier = Modifier.size(36.dp).background(Ink50, RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
+                    Icon(icon, null, tint = Ink900, modifier = Modifier.size(20.dp))
                 }
                 Spacer(Modifier.width(12.dp))
-                Text(title, style = MaterialTheme.typography.titleLarge, color = TextPrimary, fontWeight = FontWeight.Bold)
+                Text(title, style = MaterialTheme.typography.titleLarge, color = Ink900, fontWeight = FontWeight.Bold)
             }
-            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = Divider)
+            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = Ink50)
             content()
         }
     }

@@ -16,9 +16,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.hanaparalgroup.ui.components.*
 import com.example.hanaparalgroup.ui.theme.*
+import com.example.hanaparalgroup.viewmodel.RemoteConfigViewModel
 
 // ── Placeholder data models (UI only) ────────────────────────────────────────
 data class GroupPreview(
@@ -46,13 +49,24 @@ fun DashboardScreen(
     onNavigateToNotifications: () -> Unit,
     onNavigateToSuperuser: () -> Unit,
     onNavigateToCreateGroup: () -> Unit,
-    onNavigateToGroupDetail: (String) -> Unit
+    onNavigateToGroupDetail: (String) -> Unit,
+    viewModel: RemoteConfigViewModel = viewModel()
 ) {
     val userName = "Alex Aropo"
     val unreadCount = 3
 
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("My Groups", "Discover")
+
+    // Remote Config values from StateFlow
+    val groupCreationEnabled by viewModel.groupCreationEnabled.collectAsState()
+    val announcementHeader by viewModel.announcementHeader.collectAsState()
+    val maintenanceMode by viewModel.maintenanceMode.collectAsState()
+
+    if (maintenanceMode) {
+        MaintenanceScreen()
+        return
+    }
 
     Scaffold(
         topBar = {
@@ -65,14 +79,16 @@ fun DashboardScreen(
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onNavigateToCreateGroup,
-                containerColor = Ink900,
-                contentColor = White,
-                shape = RoundedCornerShape(14.dp),
-                icon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                text = { Text("New Group", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold) }
-            )
+            if (groupCreationEnabled) {
+                ExtendedFloatingActionButton(
+                    onClick = onNavigateToCreateGroup,
+                    containerColor = Ink900,
+                    contentColor = White,
+                    shape = RoundedCornerShape(14.dp),
+                    icon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                    text = { Text("New Group", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold) }
+                )
+            }
         },
         floatingActionButtonPosition = FabPosition.End,
         containerColor = Ink50
@@ -83,6 +99,13 @@ fun DashboardScreen(
                 .padding(innerPadding),
             contentPadding = PaddingValues(bottom = 100.dp)
         ) {
+            // ── Remote Config Announcement ───────────────────────────────────
+            if (announcementHeader.isNotEmpty()) {
+                item {
+                    AnnouncementBanner(text = announcementHeader)
+                }
+            }
+
             // ── Hero Banner ──────────────────────────────────────────────────
             item {
                 HeroBanner(
@@ -184,7 +207,7 @@ fun DashboardScreen(
                         groupName = group.name,
                         subject = group.subject,
                         memberCount = group.memberCount,
-                        maxMembers = group.maxMembers,
+                        maxMembers = viewModel.maxMembersLimit.collectAsState().value, // Dynamic limit from Remote Config
                         adminName = group.adminName,
                         isJoined = group.isJoined,
                         onClick = { onNavigateToGroupDetail(group.id) },
@@ -228,6 +251,62 @@ fun DashboardScreen(
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun AnnouncementBanner(text: String) {
+    Surface(
+        color = AccentSoft,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.Campaign, null, tint = Accent, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(12.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodySmall,
+                color = Ink900,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+@Composable
+fun MaintenanceScreen() {
+    Box(
+        modifier = Modifier.fillMaxSize().background(Ink50),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .background(Ink100, RoundedCornerShape(24.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Build, null, tint = Ink900, modifier = Modifier.size(36.dp))
+            }
+            Spacer(Modifier.height(24.dp))
+            Text(
+                "Under Maintenance",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = Ink900
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "HanapAral is currently undergoing scheduled maintenance to improve your experience. We'll be back shortly!",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Ink400,
+                textAlign = TextAlign.Center,
+                lineHeight = 22.sp
+            )
         }
     }
 }

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<defaultsMap>
+    <entry>
+        <key>group_creation_enabled</key>
+        <value>true</value>
+    </entry>
+    <entry>
+        <key>max_members_limit</key>
+        <value>15</value>
+    </entry>
+    <entry>
+        <key>announcement_header</key>
+        <value>📢 Study Smart, Excel Together!</value>
+    </entry>
+    <entry>
+        <key>maintenance_mode</key>
+        <value>false</value>
+    </entry>
+</defaultsMap>
