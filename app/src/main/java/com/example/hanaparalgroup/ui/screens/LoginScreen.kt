@@ -15,13 +15,17 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
+import com.example.hanaparalgroup.data.models.UserProfile
+import com.example.hanaparalgroup.data.repository.UserProfileRepository
 import com.example.hanaparalgroup.ui.components.*
 import com.example.hanaparalgroup.ui.theme.*
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(onLoginSuccess: () -> Unit) {
     var isLoading by remember { mutableStateOf(false) }
     var contentVisible by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) { contentVisible = true }
 
@@ -126,10 +130,44 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
 
                         Spacer(Modifier.height(28.dp))
 
-                        // Google Sign-In Button
+                        // ── GALANG: Wire real Google Sign-In here ─────────────
+                        // After Firebase Auth returns a FirebaseUser, extract uid + email,
+                        // then call the seeding block below inside the success callback.
                         GoogleSignInButton(
                             onClick = {
                                 isLoading = true
+
+                                // ── AROPO: Seed Firestore user document after login ────
+                                // This block runs once Galang's Auth gives us a FirebaseUser.
+                                // For now we read from FirebaseAuth directly so the profile
+                                // document is created the moment the user signs in.
+                                scope.launch {
+                                    val uid   = UserProfileRepository.currentUid
+                                    val email = com.google.firebase.auth.ktx.auth
+                                        .let { com.google.firebase.ktx.Firebase.auth }
+                                        .currentUser?.email ?: ""
+
+                                    if (uid != null) {
+                                        // Only create if not already in Firestore
+                                        val existing = UserProfileRepository.getProfile(uid)
+                                        if (existing.getOrNull() == null) {
+                                            UserProfileRepository.createProfile(
+                                                UserProfile(
+                                                    uid   = uid,
+                                                    email = email,
+                                                    // name/course/yearLevel left blank;
+                                                    // user fills them in ProfileEditScreen
+                                                    name      = "",
+                                                    course    = "",
+                                                    yearLevel = ""
+                                                )
+                                            )
+                                        }
+                                    }
+
+                                    isLoading = false
+                                    onLoginSuccess()
+                                }
                             },
                             isLoading = isLoading,
                             modifier = Modifier.fillMaxWidth()
@@ -139,11 +177,11 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                         LabeledDivider(label = "OR")
                         Spacer(Modifier.height(24.dp))
 
-                        FeatureHighlight(icon = Icons.Default.Groups, text = "Join & create study groups instantly")
+                        FeatureHighlight(icon = Icons.Default.Groups,        text = "Join & create study groups instantly")
                         Spacer(Modifier.height(10.dp))
-                        FeatureHighlight(icon = Icons.Default.Notifications, text = "Real-time notifications for your groups")
+                        FeatureHighlight(icon = Icons.Default.Notifications,  text = "Real-time notifications for your groups")
                         Spacer(Modifier.height(10.dp))
-                        FeatureHighlight(icon = Icons.Default.CloudSync, text = "Everything synced across your devices")
+                        FeatureHighlight(icon = Icons.Default.CloudSync,      text = "Everything synced across your devices")
 
                         Spacer(Modifier.height(28.dp))
 

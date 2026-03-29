@@ -12,8 +12,10 @@ import androidx.compose.ui.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
+import com.example.hanaparalgroup.data.repository.UserProfileRepository
 import com.example.hanaparalgroup.ui.components.*
 import com.example.hanaparalgroup.ui.theme.*
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -21,22 +23,60 @@ fun ProfileEditScreen(
     onNavigateBack: () -> Unit,
     onSaved: () -> Unit
 ) {
-    var name by remember { mutableStateOf("Alex Aropo") }
-    var course by remember { mutableStateOf("Bachelor of Science in Computer Science") }
-    var yearLevel by remember { mutableStateOf("3rd Year") }
-    var email by remember { mutableStateOf("alex.aropo@uoc.edu.ph") }
+    val scope = rememberCoroutineScope()
 
-    var nameError by remember { mutableStateOf("") }
+    // ── Pre-populate fields from Firestore on first load ─────────────────────
+    var name       by remember { mutableStateOf("") }
+    var course     by remember { mutableStateOf("") }
+    var yearLevel  by remember { mutableStateOf("3rd Year") }
+    var email      by remember { mutableStateOf("") }
+
+    var nameError   by remember { mutableStateOf("") }
     var courseError by remember { mutableStateOf("") }
-    var isSaving by remember { mutableStateOf(false) }
+    var isSaving    by remember { mutableStateOf(false) }
+    var saveError   by remember { mutableStateOf("") }
 
     val yearOptions = listOf("1st Year", "2nd Year", "3rd Year", "4th Year")
     var yearDropdownExpanded by remember { mutableStateOf(false) }
 
+    // Load existing profile once
+    LaunchedEffect(Unit) {
+        val uid = UserProfileRepository.currentUid ?: return@LaunchedEffect
+        val result = UserProfileRepository.getProfile(uid)
+        result.getOrNull()?.let { p ->
+            name      = p.name
+            course    = p.course
+            yearLevel = p.yearLevel.ifEmpty { "3rd Year" }
+            email     = p.email
+        }
+    }
+
     fun validate(): Boolean {
-        nameError = if (name.isBlank()) "Name is required" else ""
+        nameError   = if (name.isBlank()) "Name is required" else ""
         courseError = if (course.isBlank()) "Course is required" else ""
         return nameError.isEmpty() && courseError.isEmpty()
+    }
+
+    fun saveProfile() {
+        if (!validate()) return
+        val uid = UserProfileRepository.currentUid ?: return
+        isSaving  = true
+        saveError = ""
+
+        scope.launch {
+            val result = UserProfileRepository.updateProfile(
+                uid       = uid,
+                name      = name.trim(),
+                course    = course.trim(),
+                yearLevel = yearLevel
+            )
+            isSaving = false
+            if (result.isSuccess) {
+                onSaved()
+            } else {
+                saveError = "Failed to save. Please try again."
+            }
+        }
     }
 
     Scaffold(
@@ -45,10 +85,13 @@ fun ProfileEditScreen(
                 title = "Edit Profile",
                 onNavigateBack = onNavigateBack,
                 actions = {
-                    TextButton(onClick = {
-                        if (validate()) { onSaved() }
-                    }) {
-                        Text("Save", color = White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                    TextButton(onClick = { saveProfile() }) {
+                        Text(
+                            "Save",
+                            color = White,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
             )
@@ -79,7 +122,11 @@ fun ProfileEditScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Box(contentAlignment = Alignment.BottomEnd) {
-                            AvatarInitials(name = name.ifEmpty { "?" }, size = 80.dp, backgroundColor = Ink900)
+                            AvatarInitials(
+                                name = name.ifEmpty { "?" },
+                                size = 80.dp,
+                                backgroundColor = Ink900
+                            )
                             Box(
                                 modifier = Modifier
                                     .size(26.dp)
@@ -141,7 +188,12 @@ fun ProfileEditScreen(
                             readOnly = true,
                             enabled = false,
                             trailingIcon = {
-                                Icon(Icons.Default.Lock, contentDescription = null, tint = Ink300, modifier = Modifier.size(16.dp))
+                                Icon(
+                                    Icons.Default.Lock,
+                                    contentDescription = null,
+                                    tint = Ink300,
+                                    modifier = Modifier.size(16.dp)
+                                )
                             }
                         )
                         Text(
@@ -184,7 +236,6 @@ fun ProfileEditScreen(
                             maxLines = 2
                         )
 
-                        // Year level dropdown
                         ExposedDropdownMenuBox(
                             expanded = yearDropdownExpanded,
                             onExpandedChange = { yearDropdownExpanded = it }
@@ -195,7 +246,12 @@ fun ProfileEditScreen(
                                 readOnly = true,
                                 label = { Text("Year Level", style = MaterialTheme.typography.bodySmall) },
                                 leadingIcon = {
-                                    Icon(Icons.Default.DateRange, contentDescription = null, tint = Ink400, modifier = Modifier.size(18.dp))
+                                    Icon(
+                                        Icons.Default.DateRange,
+                                        contentDescription = null,
+                                        tint = Ink400,
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                 },
                                 trailingIcon = {
                                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = yearDropdownExpanded)
@@ -221,7 +277,12 @@ fun ProfileEditScreen(
                                         onClick = { yearLevel = option; yearDropdownExpanded = false },
                                         leadingIcon = {
                                             if (yearLevel == option) {
-                                                Icon(Icons.Default.Check, contentDescription = null, tint = Ink900, modifier = Modifier.size(16.dp))
+                                                Icon(
+                                                    Icons.Default.Check,
+                                                    contentDescription = null,
+                                                    tint = Ink900,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
                                             }
                                         }
                                     )
@@ -231,12 +292,20 @@ fun ProfileEditScreen(
                     }
                 }
 
+                // ── Save error message ───────────────────────────────────────
+                if (saveError.isNotEmpty()) {
+                    Text(
+                        text = saveError,
+                        color = Danger,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                }
+
                 // ── Save Button ──────────────────────────────────────────────
                 PrimaryButton(
                     text = "Save Changes",
-                    onClick = {
-                        if (validate()) { isSaving = true; onSaved() }
-                    },
+                    onClick = { saveProfile() },
                     icon = Icons.Default.Check,
                     isLoading = isSaving,
                     modifier = Modifier.fillMaxWidth()
@@ -260,14 +329,24 @@ fun ProfileEditScreen(
                         Spacer(Modifier.height(10.dp))
                         OutlinedButton(
                             onClick = { /* Galang: sign-out logic */ },
-                            modifier = Modifier.fillMaxWidth().height(44.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp),
                             shape = RoundedCornerShape(10.dp),
                             border = BorderStroke(1.dp, Danger.copy(alpha = 0.5f)),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = Danger)
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(15.dp))
+                            Icon(
+                                Icons.AutoMirrored.Filled.Logout,
+                                contentDescription = null,
+                                modifier = Modifier.size(15.dp)
+                            )
                             Spacer(Modifier.width(8.dp))
-                            Text("Sign Out", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "Sign Out",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                     }
                 }

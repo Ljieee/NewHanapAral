@@ -15,6 +15,8 @@ import androidx.compose.ui.draw.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
+import com.example.hanaparalgroup.data.models.UserProfile
+import com.example.hanaparalgroup.data.repository.UserProfileRepository
 import com.example.hanaparalgroup.ui.components.*
 import com.example.hanaparalgroup.ui.theme.*
 
@@ -23,11 +25,40 @@ fun ProfileScreen(
     onNavigateBack: () -> Unit,
     onNavigateToEdit: () -> Unit
 ) {
-    val name = "Alex Aropo"
-    val course = "Bachelor of Science in Computer Science"
-    val yearLevel = "3rd Year"
-    val email = "alex.aropo@uoc.edu.ph"
-    val groupsJoined = 2
+    // ── State ─────────────────────────────────────────────────────────────────
+    var profile by remember { mutableStateOf<UserProfile?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    // ── Real-time listener — removed when screen leaves composition ───────────
+    DisposableEffect(Unit) {
+        val uid = UserProfileRepository.currentUid
+        if (uid == null) {
+            isLoading = false
+            return@DisposableEffect onDispose {}
+        }
+
+        val registration = UserProfileRepository.listenToProfile(
+            uid      = uid,
+            onUpdate = { updatedProfile ->
+                profile   = updatedProfile
+                isLoading = false
+            },
+            onError  = {
+                isLoading = false
+            }
+        )
+
+        onDispose { registration.remove() }
+    }
+
+    // ── Derived display values (fallback to empty string while loading) ────────
+    val name       = profile?.name      ?: ""
+    val course     = profile?.course    ?: ""
+    val yearLevel  = profile?.yearLevel ?: ""
+    val email      = profile?.email     ?: ""
+
+    // Placeholder stats — Balanag will wire real group counts from Firestore
+    val groupsJoined  = 2
     val groupsCreated = 1
 
     Scaffold(
@@ -44,6 +75,19 @@ fun ProfileScreen(
         },
         containerColor = Ink50
     ) { padding ->
+
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Ink900)
+            }
+            return@Scaffold
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -61,14 +105,14 @@ fun ProfileScreen(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     AvatarInitials(
-                        name = name,
+                        name = name.ifEmpty { "?" },
                         size = 76.dp,
                         backgroundColor = White.copy(alpha = 0.12f),
                         textColor = White
                     )
                     Spacer(Modifier.height(14.dp))
                     Text(
-                        text = name,
+                        text = name.ifEmpty { "—" },
                         style = MaterialTheme.typography.headlineMedium,
                         color = White,
                         fontWeight = FontWeight.Bold
@@ -77,12 +121,12 @@ fun ProfileScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.School, contentDescription = null, tint = White.copy(alpha = 0.4f), modifier = Modifier.size(13.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text(yearLevel, style = MaterialTheme.typography.bodySmall, color = White.copy(alpha = 0.4f))
+                        Text(yearLevel.ifEmpty { "—" }, style = MaterialTheme.typography.bodySmall, color = White.copy(alpha = 0.4f))
                     }
                 }
             }
 
-            // ── Stats strip (overlapping) ─────────────────────────────────────
+            // ── Stats strip ──────────────────────────────────────────────────
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -107,7 +151,7 @@ fun ProfileScreen(
                 }
             }
 
-            Spacer(Modifier.height(-12.dp)) // compensate offset
+            Spacer(Modifier.height(-12.dp))
 
             // ── Info Card ────────────────────────────────────────────────────
             Card(
@@ -128,19 +172,20 @@ fun ProfileScreen(
                     )
                     Spacer(Modifier.height(16.dp))
 
-                    ProfileInfoRow(icon = Icons.Default.Person, label = "Full Name", value = name)
+                    ProfileInfoRow(icon = Icons.Default.Person,    label = "Full Name",   value = name.ifEmpty { "—" })
                     HorizontalDivider(modifier = Modifier.padding(vertical = 14.dp), color = Ink100)
-                    ProfileInfoRow(icon = Icons.Default.Email, label = "Email", value = email)
+                    ProfileInfoRow(icon = Icons.Default.Email,     label = "Email",       value = email.ifEmpty { "—" })
                     HorizontalDivider(modifier = Modifier.padding(vertical = 14.dp), color = Ink100)
-                    ProfileInfoRow(icon = Icons.Default.School, label = "Course", value = course)
+                    ProfileInfoRow(icon = Icons.Default.School,    label = "Course",      value = course.ifEmpty { "—" })
                     HorizontalDivider(modifier = Modifier.padding(vertical = 14.dp), color = Ink100)
-                    ProfileInfoRow(icon = Icons.Default.DateRange, label = "Year Level", value = yearLevel)
+                    ProfileInfoRow(icon = Icons.Default.DateRange, label = "Year Level",  value = yearLevel.ifEmpty { "—" })
                 }
             }
 
             Spacer(Modifier.height(14.dp))
 
-            // ── Enrolled Groups Card ─────────────────────────────────────────
+            // ── My Study Groups Card ─────────────────────────────────────────
+            // Balanag: replace hardcoded list with real Firestore group data
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -160,7 +205,7 @@ fun ProfileScreen(
                     Spacer(Modifier.height(14.dp))
                     listOf(
                         "Algorithm Avengers" to "Data Structures",
-                        "DB Detectives" to "Database Management"
+                        "DB Detectives"      to "Database Management"
                     ).forEach { (gName, subject) ->
                         GroupMiniRow(name = gName, subject = subject)
                         Spacer(Modifier.height(8.dp))
@@ -170,7 +215,6 @@ fun ProfileScreen(
 
             Spacer(Modifier.height(14.dp))
 
-            // ── Edit Button ──────────────────────────────────────────────────
             PrimaryButton(
                 text = "Edit Profile",
                 onClick = onNavigateToEdit,
