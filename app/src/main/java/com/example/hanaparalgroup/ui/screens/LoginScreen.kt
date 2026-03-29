@@ -36,7 +36,6 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // ── Top section — dark header ────────────────────────────────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -52,7 +51,6 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                     )
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        // Logo mark
                         Box(
                             modifier = Modifier
                                 .size(64.dp)
@@ -66,9 +64,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                                 modifier = Modifier.size(36.dp)
                             )
                         }
-
                         Spacer(Modifier.height(20.dp))
-
                         Text(
                             text = "HanapAral",
                             style = MaterialTheme.typography.headlineLarge,
@@ -93,7 +89,6 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 }
             }
 
-            // ── Card section ─────────────────────────────────────────────────
             AnimatedVisibility(
                 visible = contentVisible,
                 enter = fadeIn(tween(600, delayMillis = 150)) + slideInVertically(
@@ -135,7 +130,6 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                         GoogleSignInButton(
                             onClick = {
                                 isLoading = true
-                                onLoginSuccess()
                             },
                             isLoading = isLoading,
                             modifier = Modifier.fillMaxWidth()
@@ -145,7 +139,6 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                         LabeledDivider(label = "OR")
                         Spacer(Modifier.height(24.dp))
 
-                        // Feature highlights
                         FeatureHighlight(icon = Icons.Default.Groups, text = "Join & create study groups instantly")
                         Spacer(Modifier.height(10.dp))
                         FeatureHighlight(icon = Icons.Default.Notifications, text = "Real-time notifications for your groups")
@@ -166,7 +159,6 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
             }
 
             Spacer(Modifier.height(24.dp))
-
             Text(
                 text = "University of Cabuyao · CCS",
                 style = MaterialTheme.typography.labelSmall,
@@ -203,7 +195,6 @@ private fun GoogleSignInButton(
                 strokeWidth = 2.dp
             )
         } else {
-            // Google G
             Box(
                 modifier = Modifier
                     .size(20.dp)

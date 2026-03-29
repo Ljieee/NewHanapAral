@@ -59,7 +59,6 @@ fun SplashScreen(
             .fillMaxSize()
             .background(Ink900)
     ) {
-        // Subtle dot-grid texture accent (top-right)
         Box(
             modifier = Modifier
                 .size(220.dp)
@@ -81,7 +80,6 @@ fun SplashScreen(
             modifier = Modifier.align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Logo
             Box(
                 modifier = Modifier
                     .size(80.dp)

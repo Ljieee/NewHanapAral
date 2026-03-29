@@ -18,7 +18,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
 import com.example.hanaparalgroup.ui.components.*
 import com.example.hanaparalgroup.ui.theme.*
-import kotlinx.coroutines.delay
 
 @Composable
 fun BiometricGateScreen(
@@ -82,9 +81,7 @@ fun BiometricGateScreen(
 
             Spacer(Modifier.height(56.dp))
 
-            // Fingerprint visual
             Box(contentAlignment = Alignment.Center) {
-                // Outer pulsing ring
                 if (authState == BiometricState.IDLE) {
                     Box(
                         modifier = Modifier
@@ -94,8 +91,6 @@ fun BiometricGateScreen(
                             .background(Ink900, CircleShape)
                     )
                 }
-
-                // Middle ring
                 Box(
                     modifier = Modifier
                         .size(118.dp)
@@ -108,8 +103,6 @@ fun BiometricGateScreen(
                             CircleShape
                         )
                 )
-
-                // Inner button
                 Box(
                     modifier = Modifier
                         .size(88.dp)
@@ -146,38 +139,15 @@ fun BiometricGateScreen(
 
             AnimatedContent(
                 targetState = authState,
-                transitionSpec = {
-                    fadeIn(tween(280)) togetherWith fadeOut(tween(200))
-                },
                 label = "status"
             ) { state ->
                 when (state) {
                     BiometricState.IDLE -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            "Tap the fingerprint icon",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Ink600,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            "to authenticate",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Ink400
-                        )
                     }
-                    BiometricState.SCANNING -> {
-                        LaunchedEffect(Unit) {
-                            delay(1800)
-                            authState = BiometricState.SUCCESS
-                            delay(700)
-                            onAuthSuccess()
-                        }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator(color = Accent, strokeWidth = 2.5.dp, modifier = Modifier.size(24.dp))
                             Spacer(Modifier.height(10.dp))
                             Text("Scanning…", style = MaterialTheme.typography.labelMedium, color = Accent)
                         }
-                    }
                     BiometricState.SUCCESS -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Authenticated", style = MaterialTheme.typography.labelMedium, color = Positive, fontWeight = FontWeight.Bold)
                         Text("Redirecting to Superuser panel…", style = MaterialTheme.typography.labelSmall, color = Ink400)
