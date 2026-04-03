@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <defaultsMap>
     <entry>
-        <key>group_creation_enabled</key>
+        <key>is_group_creation_enabled</key>
         <value>true</value>
     </entry>
     <entry>
-        <key>max_members_limit</key>
+        <key>max_member_per_group</key>
         <value>15</value>
     </entry>
     <entry>
