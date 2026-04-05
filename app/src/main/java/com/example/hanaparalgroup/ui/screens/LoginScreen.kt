@@ -1,5 +1,8 @@
 package com.example.hanaparalgroup.ui.screens
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
@@ -12,22 +15,83 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
+import com.example.hanaparalgroup.R
 import com.example.hanaparalgroup.data.models.UserProfile
 import com.example.hanaparalgroup.data.repository.UserProfileRepository
 import com.example.hanaparalgroup.ui.components.*
 import com.example.hanaparalgroup.ui.theme.*
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @Composable
 fun LoginScreen(onLoginSuccess: () -> Unit) {
     var isLoading by remember { mutableStateOf(false) }
     var contentVisible by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) { contentVisible = true }
+
+    // Google Sign-In launcher
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            scope.launch {
+                try {
+                    val account = task.getResult(ApiException::class.java)
+                    val credential = GoogleAuthProvider.getCredential(account.idToken, null)
+                    val authResult = Firebase.auth.signInWithCredential(credential).await()
+                    val firebaseUser = authResult.user
+
+                    if (firebaseUser != null) {
+                        val uid   = firebaseUser.uid
+                        val email = firebaseUser.email ?: ""
+                        val name  = firebaseUser.displayName ?: ""
+
+                        val existing = UserProfileRepository.getProfile(uid)
+                        if (existing.getOrNull() == null) {
+                            UserProfileRepository.createProfile(
+                                UserProfile(
+                                    uid       = uid,
+                                    email     = email,
+                                    name      = name,
+                                    course    = "",
+                                    yearLevel = ""
+                                )
+                            )
+                        }
+                        isLoading = false
+                        onLoginSuccess()
+                    } else {
+                        errorMessage = "Sign-in failed. Please try again."
+                        isLoading = false
+                    }
+                } catch (e: ApiException) {
+                    errorMessage = "Google Sign-In failed: ${e.localizedMessage}"
+                    isLoading = false
+                } catch (e: Exception) {
+                    errorMessage = "Sign-in error: ${e.localizedMessage}"
+                    isLoading = false
+                }
+            }
+        } else {
+            isLoading = false
+            errorMessage = "Sign-in cancelled."
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -130,48 +194,30 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
 
                         Spacer(Modifier.height(28.dp))
 
-                        // ── GALANG: Wire real Google Sign-In here ─────────────
-                        // After Firebase Auth returns a FirebaseUser, extract uid + email,
-                        // then call the seeding block below inside the success callback.
                         GoogleSignInButton(
                             onClick = {
                                 isLoading = true
-
-                                // ── AROPO: Seed Firestore user document after login ────
-                                // This block runs once Galang's Auth gives us a FirebaseUser.
-                                // For now we read from FirebaseAuth directly so the profile
-                                // document is created the moment the user signs in.
-                                scope.launch {
-                                    val uid   = UserProfileRepository.currentUid
-                                    val email = com.google.firebase.auth.ktx.auth
-                                        .let { com.google.firebase.ktx.Firebase.auth }
-                                        .currentUser?.email ?: ""
-
-                                    if (uid != null) {
-                                        // Only create if not already in Firestore
-                                        val existing = UserProfileRepository.getProfile(uid)
-                                        if (existing.getOrNull() == null) {
-                                            UserProfileRepository.createProfile(
-                                                UserProfile(
-                                                    uid   = uid,
-                                                    email = email,
-                                                    // name/course/yearLevel left blank;
-                                                    // user fills them in ProfileEditScreen
-                                                    name      = "",
-                                                    course    = "",
-                                                    yearLevel = ""
-                                                )
-                                            )
-                                        }
-                                    }
-
-                                    isLoading = false
-                                    onLoginSuccess()
-                                }
+                                errorMessage = ""
+                                val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                                    .requestIdToken(context.getString(R.string.default_web_client_id))
+                                    .requestEmail()
+                                    .build()
+                                val client = GoogleSignIn.getClient(context, gso)
+                                launcher.launch(client.signInIntent)
                             },
                             isLoading = isLoading,
                             modifier = Modifier.fillMaxWidth()
                         )
+
+                        if (errorMessage.isNotEmpty()) {
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                text = errorMessage,
+                                color = Danger,
+                                style = MaterialTheme.typography.labelSmall,
+                                textAlign = TextAlign.Center
+                            )
+                        }
 
                         Spacer(Modifier.height(24.dp))
                         LabeledDivider(label = "OR")

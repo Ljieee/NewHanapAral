@@ -1,5 +1,7 @@
 package com.example.hanaparalgroup.ui.screens
 
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
@@ -13,9 +15,12 @@ import androidx.compose.ui.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.*
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import com.example.hanaparalgroup.ui.components.*
 import com.example.hanaparalgroup.ui.theme.*
 
@@ -24,7 +29,8 @@ fun BiometricGateScreen(
     onAuthSuccess: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
-    var authState by remember { mutableStateOf(BiometricState.IDLE) }
+    var authState by remember { mutableStateOf(BiometricAuthState.IDLE) }
+    val context = LocalContext.current
 
     val infiniteTransition = rememberInfiniteTransition(label = "biometric")
     val ringScale by infiniteTransition.animateFloat(
@@ -45,6 +51,48 @@ fun BiometricGateScreen(
         ),
         label = "ringAlpha"
     )
+
+    // Navigate on success
+    LaunchedEffect(authState) {
+        if (authState == BiometricAuthState.SUCCESS) {
+            kotlinx.coroutines.delay(800)
+            onAuthSuccess()
+        }
+    }
+
+    fun launchBiometric() {
+        val activity = context as? FragmentActivity ?: return
+        authState = BiometricAuthState.SCANNING
+
+        val executor = ContextCompat.getMainExecutor(context)
+        val prompt = BiometricPrompt(
+            activity,
+            executor,
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    authState = BiometricAuthState.SUCCESS
+                }
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    authState = BiometricAuthState.FAILED
+                }
+                override fun onAuthenticationFailed() {
+                    authState = BiometricAuthState.FAILED
+                }
+            }
+        )
+
+        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Superuser Authentication")
+            .setSubtitle("Verify your identity to access the Superuser panel")
+            .setNegativeButtonText("Cancel")
+            .setAllowedAuthenticators(
+                BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                        BiometricManager.Authenticators.BIOMETRIC_WEAK
+            )
+            .build()
+
+        prompt.authenticate(promptInfo)
+    }
 
     Scaffold(
         topBar = {
@@ -82,7 +130,7 @@ fun BiometricGateScreen(
             Spacer(Modifier.height(56.dp))
 
             Box(contentAlignment = Alignment.Center) {
-                if (authState == BiometricState.IDLE) {
+                if (authState == BiometricAuthState.IDLE) {
                     Box(
                         modifier = Modifier
                             .size(150.dp)
@@ -96,9 +144,9 @@ fun BiometricGateScreen(
                         .size(118.dp)
                         .background(
                             when (authState) {
-                                BiometricState.SUCCESS -> PositiveLight
-                                BiometricState.FAILED  -> DangerLight
-                                else                   -> Ink100
+                                BiometricAuthState.SUCCESS -> PositiveLight
+                                BiometricAuthState.FAILED  -> DangerLight
+                                else                       -> Ink100
                             },
                             CircleShape
                         )
@@ -108,25 +156,25 @@ fun BiometricGateScreen(
                         .size(88.dp)
                         .background(
                             when (authState) {
-                                BiometricState.SUCCESS  -> Positive
-                                BiometricState.FAILED   -> Danger
-                                BiometricState.SCANNING -> Accent
-                                else                    -> Ink900
+                                BiometricAuthState.SUCCESS  -> Positive
+                                BiometricAuthState.FAILED   -> Danger
+                                BiometricAuthState.SCANNING -> Accent
+                                else                        -> Ink900
                             },
                             CircleShape
                         )
                         .clickable {
-                            if (authState == BiometricState.IDLE || authState == BiometricState.FAILED) {
-                                authState = BiometricState.SCANNING
+                            if (authState == BiometricAuthState.IDLE || authState == BiometricAuthState.FAILED) {
+                                launchBiometric()
                             }
                         },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = when (authState) {
-                            BiometricState.SUCCESS -> Icons.Default.CheckCircle
-                            BiometricState.FAILED  -> Icons.Default.Cancel
-                            else                   -> Icons.Default.Fingerprint
+                            BiometricAuthState.SUCCESS -> Icons.Default.CheckCircle
+                            BiometricAuthState.FAILED  -> Icons.Default.Cancel
+                            else                       -> Icons.Default.Fingerprint
                         },
                         contentDescription = "Fingerprint",
                         tint = White,
@@ -142,17 +190,24 @@ fun BiometricGateScreen(
                 label = "status"
             ) { state ->
                 when (state) {
-                    BiometricState.IDLE -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    BiometricAuthState.IDLE -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            "Tap the fingerprint icon to authenticate",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Ink400,
+                            textAlign = TextAlign.Center
+                        )
                     }
-                            CircularProgressIndicator(color = Accent, strokeWidth = 2.5.dp, modifier = Modifier.size(24.dp))
-                            Spacer(Modifier.height(10.dp))
-                            Text("Scanning…", style = MaterialTheme.typography.labelMedium, color = Accent)
-                        }
-                    BiometricState.SUCCESS -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    BiometricAuthState.SCANNING -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(color = Accent, strokeWidth = 2.5.dp, modifier = Modifier.size(24.dp))
+                        Spacer(Modifier.height(10.dp))
+                        Text("Scanning…", style = MaterialTheme.typography.labelMedium, color = Accent)
+                    }
+                    BiometricAuthState.SUCCESS -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Authenticated", style = MaterialTheme.typography.labelMedium, color = Positive, fontWeight = FontWeight.Bold)
                         Text("Redirecting to Superuser panel…", style = MaterialTheme.typography.labelSmall, color = Ink400)
                     }
-                    BiometricState.FAILED -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    BiometricAuthState.FAILED -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Authentication failed", style = MaterialTheme.typography.labelMedium, color = Danger, fontWeight = FontWeight.Bold)
                         Text("Tap to try again", style = MaterialTheme.typography.labelSmall, color = Ink400)
                     }
@@ -162,9 +217,9 @@ fun BiometricGateScreen(
             Spacer(Modifier.height(48.dp))
 
             OutlinedSecondaryButton(
-                text = "Use PIN Instead",
-                onClick = { /* Galang: fallback auth */ },
-                icon = Icons.Default.Pin,
+                text = "Cancel",
+                onClick = onNavigateBack,
+                icon = Icons.Default.Close,
                 color = Ink900,
                 modifier = Modifier.fillMaxWidth(0.65f)
             )
@@ -180,4 +235,4 @@ fun BiometricGateScreen(
     }
 }
 
-private enum class BiometricState { IDLE, SCANNING, SUCCESS, FAILED }
+private enum class BiometricAuthState { IDLE, SCANNING, SUCCESS, FAILED }

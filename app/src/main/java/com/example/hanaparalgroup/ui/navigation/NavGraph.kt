@@ -7,7 +7,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.hanaparalgroup.ui.screens.*
 
-// ── Route Constants ──────────────────────────────────────────────────────────
 object Routes {
     const val SPLASH          = "splash"
     const val LOGIN           = "login"
@@ -24,7 +23,6 @@ object Routes {
     fun groupDetail(groupId: String) = "group_detail/$groupId"
 }
 
-// ── Nav Graph ────────────────────────────────────────────────────────────────
 @Composable
 fun HanapAralNavGraph(
     navController: NavHostController = rememberNavController(),
@@ -36,8 +34,16 @@ fun HanapAralNavGraph(
     ) {
         composable(Routes.SPLASH) {
             SplashScreen(
-                onNavigateToLogin     = { navController.navigate(Routes.LOGIN) { popUpTo(Routes.SPLASH) { inclusive = true } } },
-                onNavigateToDashboard = { navController.navigate(Routes.DASHBOARD) { popUpTo(Routes.SPLASH) { inclusive = true } } }
+                onNavigateToLogin     = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(Routes.SPLASH) { inclusive = true }
+                    }
+                },
+                onNavigateToDashboard = {
+                    navController.navigate(Routes.DASHBOARD) {
+                        popUpTo(Routes.SPLASH) { inclusive = true }
+                    }
+                }
             )
         }
 
@@ -64,7 +70,7 @@ fun HanapAralNavGraph(
 
         composable(Routes.PROFILE) {
             ProfileScreen(
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack   = { navController.popBackStack() },
                 onNavigateToEdit = { navController.navigate(Routes.PROFILE_EDIT) }
             )
         }
@@ -72,7 +78,12 @@ fun HanapAralNavGraph(
         composable(Routes.PROFILE_EDIT) {
             ProfileEditScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onSaved = { navController.popBackStack() }
+                onSaved        = { navController.popBackStack() },
+                onSignOut      = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
             )
         }
 
@@ -107,7 +118,7 @@ fun HanapAralNavGraph(
 
         composable(Routes.BIOMETRIC_GATE) {
             BiometricGateScreen(
-                onAuthSuccess = {
+                onAuthSuccess  = {
                     navController.navigate(Routes.SUPERUSER) {
                         popUpTo(Routes.BIOMETRIC_GATE) { inclusive = true }
                     }

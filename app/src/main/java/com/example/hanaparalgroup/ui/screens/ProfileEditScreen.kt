@@ -18,15 +18,17 @@ import com.example.hanaparalgroup.ui.theme.*
 import com.example.hanaparalgroup.ui.viewmodel.ProfileUiState
 import com.example.hanaparalgroup.ui.viewmodel.SaveUiState
 import com.example.hanaparalgroup.ui.viewmodel.UserProfileViewModel
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileEditScreen(
     onNavigateBack: () -> Unit,
     onSaved: () -> Unit,
-    viewModel: UserProfileViewModel = viewModel()   // same instance as ProfileScreen
+    onSignOut: () -> Unit = {},
+    viewModel: UserProfileViewModel = viewModel()
 ) {
-    // ── Pre-fill fields from the live profile already loaded in ViewModel ─────
     val profileState by viewModel.profileState.collectAsState()
     val saveState    by viewModel.saveState.collectAsState()
 
@@ -41,7 +43,6 @@ fun ProfileEditScreen(
     val yearOptions          = listOf("1st Year", "2nd Year", "3rd Year", "4th Year")
     var yearDropdownExpanded by remember { mutableStateOf(false) }
 
-    // Pre-fill once when profile data arrives
     LaunchedEffect(profileState) {
         if (profileState is ProfileUiState.Success) {
             val p = (profileState as ProfileUiState.Success).profile
@@ -52,7 +53,6 @@ fun ProfileEditScreen(
         }
     }
 
-    // Navigate back automatically when save succeeds
     LaunchedEffect(saveState) {
         if (saveState is SaveUiState.Saved) {
             viewModel.resetSaveState()
@@ -92,7 +92,7 @@ fun ProfileEditScreen(
                     .padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // ── Avatar ───────────────────────────────────────────────────
+                // Avatar
                 Card(
                     modifier  = Modifier.fillMaxWidth(),
                     shape     = RoundedCornerShape(16.dp),
@@ -121,7 +121,7 @@ fun ProfileEditScreen(
                     }
                 }
 
-                // ── Personal Info ────────────────────────────────────────────
+                // Personal Info
                 Card(
                     modifier  = Modifier.fillMaxWidth(),
                     shape     = RoundedCornerShape(16.dp),
@@ -157,7 +157,7 @@ fun ProfileEditScreen(
                     }
                 }
 
-                // ── Academic Info ────────────────────────────────────────────
+                // Academic Info
                 Card(
                     modifier  = Modifier.fillMaxWidth(),
                     shape     = RoundedCornerShape(16.dp),
@@ -219,12 +219,10 @@ fun ProfileEditScreen(
                     }
                 }
 
-                // ── Save error ────────────────────────────────────────────────
                 if (saveError.isNotEmpty()) {
                     Text(saveError, color = Danger, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 4.dp))
                 }
 
-                // ── Save button ───────────────────────────────────────────────
                 PrimaryButton(
                     text      = "Save Changes",
                     onClick   = { if (validate()) viewModel.saveProfile(name, course, yearLevel) },
@@ -233,7 +231,7 @@ fun ProfileEditScreen(
                     modifier  = Modifier.fillMaxWidth()
                 )
 
-                // ── Danger zone ───────────────────────────────────────────────
+                // Sign-out card
                 Card(
                     modifier  = Modifier.fillMaxWidth(),
                     shape     = RoundedCornerShape(14.dp),
@@ -245,7 +243,10 @@ fun ProfileEditScreen(
                         Text("Account", style = MaterialTheme.typography.titleSmall, color = Ink400, fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.height(10.dp))
                         OutlinedButton(
-                            onClick  = { /* Galang: sign-out logic */ },
+                            onClick  = {
+                                Firebase.auth.signOut()
+                                onSignOut()
+                            },
                             modifier = Modifier.fillMaxWidth().height(44.dp),
                             shape    = RoundedCornerShape(10.dp),
                             border   = BorderStroke(1.dp, Danger.copy(alpha = 0.5f)),

@@ -13,11 +13,15 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.hanaparalgroup.data.models.StudyGroup
 import com.example.hanaparalgroup.data.models.UserProfile
 import com.example.hanaparalgroup.ui.components.*
 import com.example.hanaparalgroup.ui.theme.*
 import com.example.hanaparalgroup.ui.viewmodel.ProfileUiState
 import com.example.hanaparalgroup.ui.viewmodel.UserProfileViewModel
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 
 @Composable
 fun ProfileScreen(
@@ -45,14 +49,14 @@ fun ProfileScreen(
 
             is ProfileUiState.Loading -> {
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(padding),
+                    modifier         = Modifier.fillMaxSize().padding(padding),
                     contentAlignment = Alignment.Center
                 ) { CircularProgressIndicator(color = Ink900) }
             }
 
             is ProfileUiState.Error -> {
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(padding),
+                    modifier         = Modifier.fillMaxSize().padding(padding),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(state.message, color = Danger, style = MaterialTheme.typography.bodyMedium)
@@ -76,9 +80,25 @@ private fun ProfileContent(
     padding: PaddingValues,
     onNavigateToEdit: () -> Unit
 ) {
-    // Balanag: replace these with real Firestore group counts
-    val groupsJoined  = 2
-    val groupsCreated = 1
+    val currentUid = Firebase.auth.currentUser?.uid ?: ""
+
+    // ── Live group data from Firestore ─────────────────────────────────────────
+    var myGroups by remember { mutableStateOf<List<StudyGroup>>(emptyList()) }
+
+    DisposableEffect(currentUid) {
+        val listener = Firebase.firestore.collection("groups")
+            .addSnapshotListener { snap, _ ->
+                if (snap != null) {
+                    myGroups = snap.documents
+                        .mapNotNull { it.toObject(StudyGroup::class.java) }
+                        .filter { it.members.contains(currentUid) }
+                }
+            }
+        onDispose { listener.remove() }
+    }
+
+    val groupsJoined  = myGroups.size
+    val groupsCreated = myGroups.count { it.adminId == currentUid }
 
     Column(
         modifier = Modifier
@@ -87,7 +107,7 @@ private fun ProfileContent(
             .padding(padding),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // ── Header ───────────────────────────────────────────────────────────
+        // ── Header ─────────────────────────────────────────────────────────────
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -111,36 +131,48 @@ private fun ProfileContent(
                 )
                 Spacer(Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.School, contentDescription = null, tint = White.copy(alpha = 0.4f), modifier = Modifier.size(13.dp))
+                    Icon(
+                        Icons.Default.School,
+                        contentDescription = null,
+                        tint     = White.copy(alpha = 0.4f),
+                        modifier = Modifier.size(13.dp)
+                    )
                     Spacer(Modifier.width(4.dp))
-                    Text(profile.yearLevel.ifEmpty { "—" }, style = MaterialTheme.typography.bodySmall, color = White.copy(alpha = 0.4f))
+                    Text(
+                        profile.yearLevel.ifEmpty { "—" },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = White.copy(alpha = 0.4f)
+                    )
                 }
             }
         }
 
-        // ── Stats strip ───────────────────────────────────────────────────────
+        // ── Stats strip (all dynamic) ──────────────────────────────────────────
         Card(
-            modifier  = Modifier.fillMaxWidth().offset(y = (-24).dp).padding(horizontal = 20.dp),
+            modifier  = Modifier
+                .fillMaxWidth()
+                .offset(y = (-24).dp)
+                .padding(horizontal = 20.dp),
             shape     = RoundedCornerShape(16.dp),
             colors    = CardDefaults.cardColors(containerColor = White),
             elevation = CardDefaults.cardElevation(0.dp),
             border    = BorderStroke(1.dp, Ink200)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
+                modifier              = Modifier.fillMaxWidth().padding(vertical = 20.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 ProfileStat(value = groupsJoined.toString(),  label = "Joined")
                 VerticalDivider(modifier = Modifier.height(36.dp), color = Ink200)
                 ProfileStat(value = groupsCreated.toString(), label = "Created")
                 VerticalDivider(modifier = Modifier.height(36.dp), color = Ink200)
-                ProfileStat(value = "A+", label = "Rating")
+                ProfileStat(value = if (myGroups.isEmpty()) "—" else "Active", label = "Status")
             }
         }
 
         Spacer(Modifier.height(-12.dp))
 
-        // ── Student Info Card ─────────────────────────────────────────────────
+        // ── Student Info Card ──────────────────────────────────────────────────
         Card(
             modifier  = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
             shape     = RoundedCornerShape(16.dp),
@@ -149,7 +181,12 @@ private fun ProfileContent(
             border    = BorderStroke(1.dp, Ink200)
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
-                Text("Student Information", style = MaterialTheme.typography.titleSmall, color = Ink400, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Student Information",
+                    style      = MaterialTheme.typography.titleSmall,
+                    color      = Ink400,
+                    fontWeight = FontWeight.SemiBold
+                )
                 Spacer(Modifier.height(16.dp))
                 ProfileInfoRow(Icons.Default.Person,    "Full Name",  profile.name.ifEmpty { "—" })
                 HorizontalDivider(modifier = Modifier.padding(vertical = 14.dp), color = Ink100)
@@ -163,7 +200,7 @@ private fun ProfileContent(
 
         Spacer(Modifier.height(14.dp))
 
-        // ── My Study Groups — Balanag: replace with live Firestore data ───────
+        // ── My Study Groups (live from Firestore) ──────────────────────────────
         Card(
             modifier  = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
             shape     = RoundedCornerShape(16.dp),
@@ -172,13 +209,29 @@ private fun ProfileContent(
             border    = BorderStroke(1.dp, Ink200)
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
-                Text("My Study Groups", style = MaterialTheme.typography.titleSmall, color = Ink400, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "My Study Groups",
+                    style      = MaterialTheme.typography.titleSmall,
+                    color      = Ink400,
+                    fontWeight = FontWeight.SemiBold
+                )
                 Spacer(Modifier.height(14.dp))
-                listOf("Algorithm Avengers" to "Data Structures", "DB Detectives" to "Database Management")
-                    .forEach { (gName, subject) ->
-                        GroupMiniRow(name = gName, subject = subject)
+                if (myGroups.isEmpty()) {
+                    Text(
+                        "You haven't joined any groups yet.",
+                        style    = MaterialTheme.typography.bodySmall,
+                        color    = Ink300
+                    )
+                } else {
+                    myGroups.forEach { group ->
+                        GroupMiniRow(
+                            name    = group.groupName,
+                            subject = group.description.substringBefore(" —")
+                                .ifEmpty { group.description }
+                        )
                         Spacer(Modifier.height(8.dp))
                     }
+                }
             }
         }
 
@@ -195,10 +248,16 @@ private fun ProfileContent(
     }
 }
 
+// ── Private composables ────────────────────────────────────────────────────────
 @Composable
 private fun ProfileStat(value: String, label: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, style = MaterialTheme.typography.headlineMedium, color = Ink900, fontWeight = FontWeight.ExtraBold)
+        Text(
+            value,
+            style      = MaterialTheme.typography.headlineMedium,
+            color      = Ink900,
+            fontWeight = FontWeight.ExtraBold
+        )
         Spacer(Modifier.height(2.dp))
         Text(label, style = MaterialTheme.typography.labelSmall, color = Ink400)
     }
@@ -208,7 +267,9 @@ private fun ProfileStat(value: String, label: String) {
 private fun ProfileInfoRow(icon: ImageVector, label: String, value: String) {
     Row(verticalAlignment = Alignment.Top) {
         Box(
-            modifier = Modifier.size(34.dp).background(Ink100, RoundedCornerShape(10.dp)),
+            modifier = Modifier
+                .size(34.dp)
+                .background(Ink100, RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center
         ) {
             Icon(icon, contentDescription = null, tint = Ink400, modifier = Modifier.size(17.dp))
@@ -232,16 +293,18 @@ private fun GroupMiniRow(name: String, subject: String) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
-            modifier = Modifier.size(34.dp).background(Ink100, RoundedCornerShape(10.dp)),
+            modifier = Modifier
+                .size(34.dp)
+                .background(Ink100, RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.Groups, contentDescription = null, tint = Ink600, modifier = Modifier.size(16.dp))
+            Icon(Icons.Default.Groups, null, tint = Ink600, modifier = Modifier.size(16.dp))
         }
         Spacer(Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(name,    style = MaterialTheme.typography.labelMedium, color = Ink900, fontWeight = FontWeight.SemiBold)
             Text(subject, style = MaterialTheme.typography.labelSmall,  color = Ink400)
         }
-        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Ink300, modifier = Modifier.size(16.dp))
+        Icon(Icons.Default.ChevronRight, null, tint = Ink300, modifier = Modifier.size(16.dp))
     }
 }

@@ -50,9 +50,12 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 
-    // ── ViewModel + Compose integration ──────────────────────────────────────
+    // ── ViewModel + Compose ───────────────────────────────────────────────────
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.3")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.3")
+
+    // ── Navigation ────────────────────────────────────────────────────────────
+    implementation("androidx.navigation:navigation-compose:2.7.7")
 
     // ── Firebase ──────────────────────────────────────────────────────────────
     implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
@@ -67,6 +70,13 @@ dependencies {
 
     // ── Google Sign-In ────────────────────────────────────────────────────────
     implementation("com.google.android.gms:play-services-auth:21.2.0")
+
+    // ── Biometric ─────────────────────────────────────────────────────────────
+    implementation("androidx.biometric:biometric:1.1.0")
+
+    // ── Fragment (required by BiometricPrompt) ─────────────────────────────────
+    implementation("androidx.fragment:fragment-ktx:1.7.1")
+    implementation("androidx.compose.material:material-icons-extended:1.7.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

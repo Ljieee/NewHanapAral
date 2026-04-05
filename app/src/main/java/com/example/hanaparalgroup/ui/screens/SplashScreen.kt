@@ -18,6 +18,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
 import com.example.hanaparalgroup.ui.theme.*
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.delay
 
 @Composable
@@ -51,7 +53,14 @@ fun SplashScreen(
         delay(180)
         dotsVisible = true
         delay(1600)
-        onNavigateToLogin()
+
+        // Route based on auth state
+        val currentUser = Firebase.auth.currentUser
+        if (currentUser != null) {
+            onNavigateToDashboard()
+        } else {
+            onNavigateToLogin()
+        }
     }
 
     Box(
