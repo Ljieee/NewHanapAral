@@ -19,22 +19,27 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
+import com.example.hanaparalgroup.R
+import com.example.hanaparalgroup.data.models.UserProfile
+import com.example.hanaparalgroup.data.repository.UserProfileRepository
 import com.example.hanaparalgroup.ui.components.*
 import com.example.hanaparalgroup.ui.theme.*
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @Composable
 fun LoginScreen(onLoginSuccess: () -> Unit) {
-    val context = LocalContext.current
-    val auth = remember { FirebaseAuth.getInstance() }
-
     var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
     var contentVisible by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) { contentVisible = true }
 
@@ -44,32 +49,48 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            try {
-                val account = task.getResult(ApiException::class.java)
-                val credential = GoogleAuthProvider.getCredential(account.idToken, null)
-                auth.signInWithCredential(credential)
-                    .addOnSuccessListener { onLoginSuccess() }
-                    .addOnFailureListener { e ->
+            scope.launch {
+                try {
+                    val account = task.getResult(ApiException::class.java)
+                    val credential = GoogleAuthProvider.getCredential(account.idToken, null)
+                    val authResult = Firebase.auth.signInWithCredential(credential).await()
+                    val firebaseUser = authResult.user
+
+                    if (firebaseUser != null) {
+                        val uid   = firebaseUser.uid
+                        val email = firebaseUser.email ?: ""
+                        val name  = firebaseUser.displayName ?: ""
+
+                        val existing = UserProfileRepository.getProfile(uid)
+                        if (existing.getOrNull() == null) {
+                            UserProfileRepository.createProfile(
+                                UserProfile(
+                                    uid       = uid,
+                                    email     = email,
+                                    name      = name,
+                                    course    = "",
+                                    yearLevel = ""
+                                )
+                            )
+                        }
                         isLoading = false
-                        errorMessage = e.message
+                        onLoginSuccess()
+                    } else {
+                        errorMessage = "Sign-in failed. Please try again."
+                        isLoading = false
                     }
-            } catch (e: ApiException) {
-                isLoading = false
-                errorMessage = "Google sign-in failed: ${e.message}"
+                } catch (e: ApiException) {
+                    errorMessage = "Google Sign-In failed: ${e.localizedMessage}"
+                    isLoading = false
+                } catch (e: Exception) {
+                    errorMessage = "Sign-in error: ${e.localizedMessage}"
+                    isLoading = false
+                }
             }
         } else {
             isLoading = false
             errorMessage = "Sign-in cancelled."
         }
-    }
-
-    // Build Google Sign-In client
-    val googleSignInClient = remember {
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("349358029453-lja3dtjbjl5o3tnanvpk2r7ldtjf1clj.apps.googleusercontent.com")
-            .requestEmail()
-            .build()
-        GoogleSignIn.getClient(context, gso)
     }
 
     Box(
@@ -83,7 +104,6 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // ── Top section — dark header ─────────────────────────────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -137,7 +157,6 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 }
             }
 
-            // ── Card section ─────────────────────────────────────────────
             AnimatedVisibility(
                 visible = contentVisible,
                 enter = fadeIn(tween(600, delayMillis = 150)) + slideInVertically(
@@ -175,37 +194,40 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
 
                         Spacer(Modifier.height(28.dp))
 
-                        // Error message
-                        errorMessage?.let {
-                            Text(
-                                text = it,
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(bottom = 12.dp)
-                            )
-                        }
-
-                        // Google Sign-In Button
                         GoogleSignInButton(
                             onClick = {
                                 isLoading = true
-                                errorMessage = null
-                                launcher.launch(googleSignInClient.signInIntent)
+                                errorMessage = ""
+                                val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                                    .requestIdToken(context.getString(R.string.default_web_client_id))
+                                    .requestEmail()
+                                    .build()
+                                val client = GoogleSignIn.getClient(context, gso)
+                                launcher.launch(client.signInIntent)
                             },
                             isLoading = isLoading,
                             modifier = Modifier.fillMaxWidth()
                         )
 
+                        if (errorMessage.isNotEmpty()) {
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                text = errorMessage,
+                                color = Danger,
+                                style = MaterialTheme.typography.labelSmall,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+
                         Spacer(Modifier.height(24.dp))
                         LabeledDivider(label = "OR")
                         Spacer(Modifier.height(24.dp))
 
-                        FeatureHighlight(icon = Icons.Default.Groups, text = "Join & create study groups instantly")
+                        FeatureHighlight(icon = Icons.Default.Groups,        text = "Join & create study groups instantly")
                         Spacer(Modifier.height(10.dp))
-                        FeatureHighlight(icon = Icons.Default.Notifications, text = "Real-time notifications for your groups")
+                        FeatureHighlight(icon = Icons.Default.Notifications,  text = "Real-time notifications for your groups")
                         Spacer(Modifier.height(10.dp))
-                        FeatureHighlight(icon = Icons.Default.CloudSync, text = "Everything synced across your devices")
+                        FeatureHighlight(icon = Icons.Default.CloudSync,      text = "Everything synced across your devices")
 
                         Spacer(Modifier.height(28.dp))
 

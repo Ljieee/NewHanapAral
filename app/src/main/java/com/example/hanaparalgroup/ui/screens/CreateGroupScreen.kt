@@ -12,8 +12,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
+import com.example.hanaparalgroup.data.models.StudyGroup
 import com.example.hanaparalgroup.ui.components.*
 import com.example.hanaparalgroup.ui.theme.*
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.remoteconfig.ktx.remoteConfig
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,11 +31,23 @@ fun CreateGroupScreen(
     var groupName by remember { mutableStateOf("") }
     var subject by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var maxMembers by remember { mutableStateOf(15) }
     var isCreating by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
 
     var groupNameError by remember { mutableStateOf("") }
     var subjectError by remember { mutableStateOf("") }
+
+    // Read max members from Remote Config (default 15)
+    val remoteConfig = Firebase.remoteConfig
+    val maxMembersFromConfig = remoteConfig.getLong("max_members_per_group").toInt()
+        .let { if (it <= 0) 15 else it }
+    var maxMembers by remember { mutableStateOf(maxMembersFromConfig) }
+
+    // Read group creation toggle from Remote Config
+    val groupCreationEnabled = remoteConfig.getBoolean("group_creation_enabled")
+        .let { true } // default true if not set
+
+    val scope = rememberCoroutineScope()
 
     val subjectOptions = listOf(
         "Data Structures & Algorithms", "Web Development", "Database Management",
@@ -66,7 +85,7 @@ fun CreateGroupScreen(
                     .padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // ── Header banner ────────────────────────────────────────────
+                // Header banner
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -97,7 +116,7 @@ fun CreateGroupScreen(
                     }
                 }
 
-                // ── Form card ────────────────────────────────────────────────
+                // Form card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
@@ -116,7 +135,6 @@ fun CreateGroupScreen(
                             fontWeight = FontWeight.SemiBold
                         )
 
-                        // Group name
                         BrandedTextField(
                             value = groupName,
                             onValueChange = { groupName = it; groupNameError = "" },
@@ -133,7 +151,6 @@ fun CreateGroupScreen(
                             modifier = Modifier.align(Alignment.End)
                         )
 
-                        // Subject dropdown
                         ExposedDropdownMenuBox(
                             expanded = subjectDropdownExpanded,
                             onExpandedChange = { subjectDropdownExpanded = it }
@@ -152,7 +169,7 @@ fun CreateGroupScreen(
                                 placeholder = { Text("Select or type a subject", color = Ink300, style = MaterialTheme.typography.bodySmall) },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .menuAnchor(),
+                                    .menuAnchor(MenuAnchorType.PrimaryEditable),
                                 shape = RoundedCornerShape(10.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = Ink900,
@@ -182,7 +199,6 @@ fun CreateGroupScreen(
                                 modifier = Modifier.padding(start = 14.dp))
                         }
 
-                        // Description
                         BrandedTextField(
                             value = description,
                             onValueChange = { description = it },
@@ -195,7 +211,7 @@ fun CreateGroupScreen(
                     }
                 }
 
-                // ── Settings Card ────────────────────────────────────────────
+                // Settings Card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
@@ -222,10 +238,7 @@ fun CreateGroupScreen(
                                 Spacer(Modifier.width(8.dp))
                                 Text("Max Members", style = MaterialTheme.typography.labelMedium, color = Ink900, fontWeight = FontWeight.Medium)
                             }
-                            Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = Ink100
-                            ) {
+                            Surface(shape = RoundedCornerShape(20.dp), color = Ink100) {
                                 Text(
                                     "$maxMembers members",
                                     style = MaterialTheme.typography.labelSmall,
@@ -246,8 +259,8 @@ fun CreateGroupScreen(
                         Slider(
                             value = maxMembers.toFloat(),
                             onValueChange = { maxMembers = it.toInt() },
-                            valueRange = 5f..30f,
-                            steps = 24,
+                            valueRange = 5f..maxMembersFromConfig.toFloat().coerceAtLeast(30f),
+                            steps = (maxMembersFromConfig.coerceAtLeast(30) - 5 - 1).coerceAtLeast(0),
                             colors = SliderDefaults.colors(
                                 thumbColor = Ink900,
                                 activeTrackColor = Ink900,
@@ -259,12 +272,12 @@ fun CreateGroupScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text("5", style = MaterialTheme.typography.labelSmall, color = Ink300)
-                            Text("30", style = MaterialTheme.typography.labelSmall, color = Ink300)
+                            Text("$maxMembersFromConfig", style = MaterialTheme.typography.labelSmall, color = Ink300)
                         }
                     }
                 }
 
-                // ── Admin notice ─────────────────────────────────────────────
+                // Admin notice
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
@@ -285,14 +298,41 @@ fun CreateGroupScreen(
                     }
                 }
 
-                // ── Create Button ────────────────────────────────────────────
+                if (errorMessage.isNotEmpty()) {
+                    Text(errorMessage, color = Danger, style = MaterialTheme.typography.labelSmall)
+                }
+
+                // Create Button
                 PrimaryButton(
                     text = "Create Group",
                     onClick = {
                         if (validate()) {
                             isCreating = true
-                            // Balanag: Firestore create logic
-                            onGroupCreated()
+                            errorMessage = ""
+                            val uid = Firebase.auth.currentUser?.uid ?: return@PrimaryButton
+                            val groupId = Firebase.firestore.collection("groups").document().id
+                            val newGroup = StudyGroup(
+                                groupId     = groupId,
+                                groupName   = groupName.trim(),
+                                description = subject.trim() + if (description.isNotBlank()) " — ${description.trim()}" else "",
+                                adminId     = uid,
+                                members     = listOf(uid),
+                                maxMembers  = maxMembers,
+                                createdAt   = System.currentTimeMillis()
+                            )
+                            scope.launch {
+                                try {
+                                    Firebase.firestore.collection("groups")
+                                        .document(groupId)
+                                        .set(newGroup)
+                                        .await()
+                                    isCreating = false
+                                    onGroupCreated()
+                                } catch (e: Exception) {
+                                    errorMessage = "Failed to create group: ${e.localizedMessage}"
+                                    isCreating = false
+                                }
+                            }
                         }
                     },
                     icon = Icons.Default.Add,
