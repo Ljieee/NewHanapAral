@@ -18,7 +18,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
 import com.example.hanaparalgroup.ui.theme.*
-import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 
 @Composable
@@ -52,17 +51,9 @@ fun SplashScreen(
         delay(180)
         dotsVisible = true
         delay(1600)
-
-        // ── Real auth check ──────────────────────────────────────────────
-        val currentUser = FirebaseAuth.getInstance().currentUser
-        if (currentUser != null) {
-            onNavigateToDashboard()
-        } else {
-            onNavigateToLogin()
-        }
+        onNavigateToLogin()
     }
 
-    // ── Everything below is unchanged ────────────────────────────────────
     Box(
         modifier = Modifier
             .fillMaxSize()
