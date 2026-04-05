@@ -4,6 +4,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import com.example.hanaparalgroup.R
 import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
+import com.google.firebase.firestore.firestore
 import com.google.firebase.remoteconfig.ConfigUpdate
 import com.google.firebase.remoteconfig.ConfigUpdateListener
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigException
@@ -14,6 +16,8 @@ import kotlinx.coroutines.flow.asStateFlow
 
 class RemoteConfigViewModel : ViewModel() {
     private val remoteConfig = Firebase.remoteConfig
+     private val auth = Firebase.auth
+    private val db = Firebase.firestore
 
     private val _groupCreationEnabled = MutableStateFlow(remoteConfig.getBoolean("is_group_creation_enabled"))
     val groupCreationEnabled = _groupCreationEnabled.asStateFlow()
@@ -27,6 +31,9 @@ class RemoteConfigViewModel : ViewModel() {
     private val _maintenanceMode = MutableStateFlow(remoteConfig.getBoolean("maintenance_mode"))
     val maintenanceMode = _maintenanceMode.asStateFlow()
 
+    private val _isSuperuser = MutableStateFlow(false)
+    val isSuperuser = _isSuperuser.asStateFlow()
+
     init {
         val configSettings = remoteConfigSettings {
             minimumFetchIntervalInSeconds = 3600 // 1 hour for production
@@ -36,6 +43,24 @@ class RemoteConfigViewModel : ViewModel() {
 
         fetchAndActivate()
         setupRealtimeUpdates()
+        checkUserRole() // Check role on initialization
+    }
+
+    fun checkUserRole() {
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            db.collection("users").document(currentUser.uid).get()
+                .addOnSuccessListener { document ->
+                    if (document.exists()) {
+                        val role = document.getString("role")
+                        _isSuperuser.value = (role == "superuser")
+                        Log.d("Auth", "User role: $role, isSuperuser: ${_isSuperuser.value}")
+                    }
+                }
+                .addOnFailureListener { e ->
+                    Log.w("Auth", "Error checking user role", e)
+                }
+        }
     }
 
     fun fetchAndActivate() {

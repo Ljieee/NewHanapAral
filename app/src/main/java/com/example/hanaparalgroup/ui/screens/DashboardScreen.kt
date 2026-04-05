@@ -58,10 +58,11 @@ fun DashboardScreen(
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("My Groups", "Discover")
 
-    // Remote Config values from StateFlow
+    // Remote Config & Auth values from ViewModel
     val groupCreationEnabled by viewModel.groupCreationEnabled.collectAsState()
     val announcementHeader by viewModel.announcementHeader.collectAsState()
     val maintenanceMode by viewModel.maintenanceMode.collectAsState()
+    val isSuperuser by viewModel.isSuperuser.collectAsState()
 
     if (maintenanceMode) {
         MaintenanceScreen()
@@ -73,12 +74,14 @@ fun DashboardScreen(
             DashboardTopBar(
                 userName = userName,
                 unreadCount = unreadCount,
+                isSuperuser = isSuperuser, // Pass the role state
                 onProfileClick = onNavigateToProfile,
                 onNotifClick = onNavigateToNotifications,
                 onSuperuserClick = onNavigateToSuperuser
             )
         },
         floatingActionButton = {
+            // Only show if Admin has enabled this feature in Remote Config
             if (groupCreationEnabled) {
                 ExtendedFloatingActionButton(
                     onClick = onNavigateToCreateGroup,
@@ -207,11 +210,11 @@ fun DashboardScreen(
                         groupName = group.name,
                         subject = group.subject,
                         memberCount = group.memberCount,
-                        maxMembers = viewModel.maxMembersLimit.collectAsState().value, // Dynamic limit from Remote Config
+                        maxMembers = viewModel.maxMembersLimit.collectAsState().value, 
                         adminName = group.adminName,
                         isJoined = group.isJoined,
                         onClick = { onNavigateToGroupDetail(group.id) },
-                        onJoinClick = { /* Balanag: join logic */ },
+                        onJoinClick = { /* join logic */ },
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
                     )
                 }
@@ -317,6 +320,7 @@ fun MaintenanceScreen() {
 private fun DashboardTopBar(
     userName: String,
     unreadCount: Int,
+    isSuperuser: Boolean,
     onProfileClick: () -> Unit,
     onNotifClick: () -> Unit,
     onSuperuserClick: () -> Unit
@@ -373,8 +377,15 @@ private fun DashboardTopBar(
                     textColor = White
                 )
             }
-            IconButton(onClick = onSuperuserClick) {
-                Icon(Icons.Default.AdminPanelSettings, contentDescription = "Superuser", tint = White.copy(alpha = 0.5f))
+            // ── Superuser UI Logic: Only show Admin icon if the user is a superuser ──
+            if (isSuperuser) {
+                IconButton(onClick = onSuperuserClick) {
+                    Icon(
+                        Icons.Default.AdminPanelSettings, 
+                        contentDescription = "Superuser", 
+                        tint = White
+                    )
+                }
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Ink900)
