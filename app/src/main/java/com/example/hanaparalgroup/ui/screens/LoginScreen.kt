@@ -34,7 +34,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 @Composable
-fun LoginScreen(onLoginSuccess: () -> Unit) {
+fun LoginScreen(onLoginSuccess: (isNewUser: Boolean) -> Unit) {
     var isLoading by remember { mutableStateOf(false) }
     var contentVisible by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
@@ -62,7 +62,9 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                         val name  = firebaseUser.displayName ?: ""
 
                         val existing = UserProfileRepository.getProfile(uid)
-                        if (existing.getOrNull() == null) {
+                        val isNewUser = existing.getOrNull() == null
+                        
+                        if (isNewUser) {
                             UserProfileRepository.createProfile(
                                 UserProfile(
                                     uid       = uid,
@@ -73,8 +75,9 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                                 )
                             )
                         }
+                        
                         isLoading = false
-                        onLoginSuccess()
+                        onLoginSuccess(isNewUser)
                     } else {
                         errorMessage = "Sign-in failed. Please try again."
                         isLoading = false
