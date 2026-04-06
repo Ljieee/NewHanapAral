@@ -49,8 +49,9 @@ fun HanapAralNavGraph(
 
         composable(Routes.LOGIN) {
             LoginScreen(
-                onLoginSuccess = {
-                    navController.navigate(Routes.DASHBOARD) {
+                onLoginSuccess = { isNewUser ->
+                    val destination = if (isNewUser) Routes.PROFILE_EDIT else Routes.DASHBOARD
+                    navController.navigate(destination) {
                         popUpTo(Routes.LOGIN) { inclusive = true }
                     }
                 }
@@ -71,17 +72,26 @@ fun HanapAralNavGraph(
         composable(Routes.PROFILE) {
             ProfileScreen(
                 onNavigateBack   = { navController.popBackStack() },
-                onNavigateToEdit = { navController.navigate(Routes.PROFILE_EDIT) }
+                onNavigateToEdit = { navController.navigate(Routes.PROFILE_EDIT) },
+                onSignOut        = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
             )
         }
 
         composable(Routes.PROFILE_EDIT) {
             ProfileEditScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onSaved        = { navController.popBackStack() },
-                onSignOut      = {
-                    navController.navigate(Routes.LOGIN) {
-                        popUpTo(0) { inclusive = true }
+                onSaved        = {
+                    // Try to pop back to Profile screen. 
+                    // If we can't pop, it means we came directly from Login (new user),
+                    // so we navigate to Dashboard.
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Routes.DASHBOARD) {
+                            popUpTo(Routes.PROFILE_EDIT) { inclusive = true }
+                        }
                     }
                 }
             )

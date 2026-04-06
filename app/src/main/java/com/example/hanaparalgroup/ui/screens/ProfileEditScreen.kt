@@ -4,7 +4,6 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,15 +17,12 @@ import com.example.hanaparalgroup.ui.theme.*
 import com.example.hanaparalgroup.ui.viewmodel.ProfileUiState
 import com.example.hanaparalgroup.ui.viewmodel.SaveUiState
 import com.example.hanaparalgroup.ui.viewmodel.UserProfileViewModel
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.ktx.Firebase
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileEditScreen(
     onNavigateBack: () -> Unit,
     onSaved: () -> Unit,
-    onSignOut: () -> Unit = {},
     viewModel: UserProfileViewModel = viewModel()
 ) {
     val profileState by viewModel.profileState.collectAsState()
@@ -230,34 +226,6 @@ fun ProfileEditScreen(
                     isLoading = isSaving,
                     modifier  = Modifier.fillMaxWidth()
                 )
-
-                // Sign-out card
-                Card(
-                    modifier  = Modifier.fillMaxWidth(),
-                    shape     = RoundedCornerShape(14.dp),
-                    colors    = CardDefaults.cardColors(containerColor = White),
-                    border    = BorderStroke(1.dp, Ink200),
-                    elevation = CardDefaults.cardElevation(0.dp)
-                ) {
-                    Column(modifier = Modifier.padding(18.dp)) {
-                        Text("Account", style = MaterialTheme.typography.titleSmall, color = Ink400, fontWeight = FontWeight.SemiBold)
-                        Spacer(Modifier.height(10.dp))
-                        OutlinedButton(
-                            onClick  = {
-                                Firebase.auth.signOut()
-                                onSignOut()
-                            },
-                            modifier = Modifier.fillMaxWidth().height(44.dp),
-                            shape    = RoundedCornerShape(10.dp),
-                            border   = BorderStroke(1.dp, Danger.copy(alpha = 0.5f)),
-                            colors   = ButtonDefaults.outlinedButtonColors(contentColor = Danger)
-                        ) {
-                            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(15.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Sign Out", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-                }
 
                 Spacer(Modifier.height(24.dp))
             }

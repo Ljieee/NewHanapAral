@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "349358029453-booa25rk29gr5tvludtt17jqth4ujncl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.hanaparalgroup",
+            "certificate_hash": "44860e74bacbad7814b5a0182bcd082f0bd080b1"
+          }
+        },
+        {
           "client_id": "349358029453-lja3dtjbjl5o3tnanvpk2r7ldtjf1clj.apps.googleusercontent.com",
           "client_type": 3
         }
