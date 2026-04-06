@@ -32,7 +32,14 @@ private data class Announcement(
     val title: String = "",
     val body: String = "",
     val authorName: String = "",
+    val authorId: String = "",          // ← NEW: needed to look up author's photo
     val timestamp: Long = 0L
+)
+
+// ── Holds both name and profile picture URL for a member ─────────────────────
+private data class MemberInfo(
+    val name: String = "",
+    val profilePictureUrl: String = ""
 )
 
 @Composable
@@ -45,7 +52,8 @@ fun GroupDetailScreen(
 
     // ── State ──────────────────────────────────────────────────────────────────
     var group           by remember { mutableStateOf<StudyGroup?>(null) }
-    var memberNames     by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    // KEY CHANGE: store MemberInfo (name + photo) instead of just name
+    var memberInfoMap   by remember { mutableStateOf<Map<String, MemberInfo>>(emptyMap()) }
     var announcements   by remember { mutableStateOf<List<Announcement>>(emptyList()) }
     var isLoading       by remember { mutableStateOf(true) }
     var isJoining       by remember { mutableStateOf(false) }
@@ -55,11 +63,11 @@ fun GroupDetailScreen(
     val tabs = listOf("Announcements", "Members")
 
     // ── Announcement dialog state ──────────────────────────────────────────────
-    var showPostDialog   by remember { mutableStateOf(false) }
-    var annTitle         by remember { mutableStateOf("") }
-    var annBody          by remember { mutableStateOf("") }
-    var isPosting        by remember { mutableStateOf(false) }
-    var postError        by remember { mutableStateOf("") }
+    var showPostDialog by remember { mutableStateOf(false) }
+    var annTitle       by remember { mutableStateOf("") }
+    var annBody        by remember { mutableStateOf("") }
+    var isPosting      by remember { mutableStateOf(false) }
+    var postError      by remember { mutableStateOf("") }
 
     // ── Real-time listeners ────────────────────────────────────────────────────
     DisposableEffect(groupId) {
@@ -72,9 +80,9 @@ fun GroupDetailScreen(
                     if (g != null) {
                         group = g
                         isLoading = false
-                        // FIX: Fetch display names for all member UIDs whenever the group updates
+                        // Fetch name AND profilePictureUrl for every member
                         scope.launch {
-                            val names = mutableMapOf<String, String>()
+                            val infoMap = mutableMapOf<String, MemberInfo>()
                             g.members.forEach { uid ->
                                 try {
                                     val doc = Firebase.firestore
@@ -82,16 +90,19 @@ fun GroupDetailScreen(
                                         .document(uid)
                                         .get()
                                         .await()
-                                    // Try "name" field; fall back to displayName, then uid prefix
                                     val fetchedName = doc.getString("name")
                                         ?: doc.getString("displayName")
                                         ?: "User (${uid.take(6)})"
-                                    names[uid] = fetchedName
+                                    val fetchedPhoto = doc.getString("profilePictureUrl") ?: ""
+                                    infoMap[uid] = MemberInfo(
+                                        name = fetchedName,
+                                        profilePictureUrl = fetchedPhoto
+                                    )
                                 } catch (_: Exception) {
-                                    names[uid] = "User (${uid.take(6)})"
+                                    infoMap[uid] = MemberInfo(name = "User (${uid.take(6)})")
                                 }
                             }
-                            memberNames = names
+                            memberInfoMap = infoMap
                         }
                     }
                 } else {
@@ -99,7 +110,7 @@ fun GroupDetailScreen(
                 }
             }
 
-        // Announcements subcollection listener
+        // Announcements subcollection listener — also store authorId
         val announcementsListener = Firebase.firestore
             .collection("groups")
             .document(groupId)
@@ -114,6 +125,7 @@ fun GroupDetailScreen(
                                 title      = doc.getString("title") ?: "",
                                 body       = doc.getString("body") ?: "",
                                 authorName = doc.getString("authorName") ?: "Unknown",
+                                authorId   = doc.getString("authorId") ?: "",
                                 timestamp  = doc.getLong("timestamp") ?: 0L
                             )
                         } catch (_: Exception) { null }
@@ -180,17 +192,16 @@ fun GroupDetailScreen(
         if (annBody.isBlank())  { postError = "Message body is required."; return }
         isPosting = true
         postError = ""
-        val authorName = memberNames[currentUid] ?: "Admin"
+        val authorName = memberInfoMap[currentUid]?.name ?: "Admin"
         scope.launch {
             try {
                 val annData = mapOf(
                     "title"      to annTitle.trim(),
                     "body"       to annBody.trim(),
                     "authorName" to authorName,
-                    "authorId"   to currentUid,
+                    "authorId"   to currentUid,      // ← saved so we can load their photo
                     "timestamp"  to System.currentTimeMillis()
                 )
-                // Write to groups/{groupId}/announcements subcollection
                 Firebase.firestore
                     .collection("groups")
                     .document(groupId)
@@ -198,7 +209,6 @@ fun GroupDetailScreen(
                     .add(annData)
                     .await()
 
-                // Also write a notification event so NotificationsScreen picks it up
                 Firebase.firestore.collection("notifications").add(
                     mapOf(
                         "type"      to "ANNOUNCEMENT",
@@ -210,7 +220,6 @@ fun GroupDetailScreen(
                     )
                 ).await()
 
-                // Reset and close dialog
                 annTitle = ""
                 annBody  = ""
                 showPostDialog = false
@@ -242,7 +251,6 @@ fun GroupDetailScreen(
             )
         },
         floatingActionButton = {
-            // FIX: Only admin can post; clicking now opens the dialog
             if (isAdmin) {
                 FloatingActionButton(
                     onClick        = { showPostDialog = true },
@@ -321,22 +329,34 @@ fun GroupDetailScreen(
                                 Spacer(Modifier.height(10.dp))
                                 Text(
                                     g.groupName,
-                                    style      = MaterialTheme.typography.headlineLarge,
-                                    color      = White,
-                                    fontWeight = FontWeight.ExtraBold,
+                                    style         = MaterialTheme.typography.headlineLarge,
+                                    color         = White,
+                                    fontWeight    = FontWeight.ExtraBold,
                                     letterSpacing = (-0.5).sp
                                 )
                                 Spacer(Modifier.height(6.dp))
+                                // Show admin's avatar + name in hero
+                                val adminInfo = memberInfoMap[g.adminId]
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        Icons.Default.Person, null,
-                                        tint     = White.copy(alpha = 0.45f),
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                    Spacer(Modifier.width(4.dp))
+                                    if (adminInfo != null) {
+                                        AvatarInitials(
+                                            name     = adminInfo.name,
+                                            imageUrl = adminInfo.profilePictureUrl,
+                                            size     = 20.dp,
+                                            backgroundColor = White.copy(alpha = 0.2f),
+                                            textColor = White
+                                        )
+                                        Spacer(Modifier.width(6.dp))
+                                    } else {
+                                        Icon(
+                                            Icons.Default.Person, null,
+                                            tint     = White.copy(alpha = 0.45f),
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                        Spacer(Modifier.width(4.dp))
+                                    }
                                     Text(
-                                        // FIX: show resolved name, fallback to "Loading…" while fetching
-                                        "Admin: ${memberNames[g.adminId] ?: "Loading…"}",
+                                        "Admin: ${adminInfo?.name ?: "Loading…"}",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = White.copy(alpha = 0.45f)
                                     )
@@ -438,12 +458,15 @@ fun GroupDetailScreen(
                             }
                         } else {
                             items(announcements, key = { it.id }) { ann ->
+                                // Look up author's profile picture from memberInfoMap
+                                val authorInfo = memberInfoMap[ann.authorId]
                                 AnnouncementCard(
-                                    title    = ann.title,
-                                    body     = ann.body,
-                                    author   = ann.authorName,
-                                    timeAgo  = formatTimeAgo(ann.timestamp),
-                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 5.dp)
+                                    title      = ann.title,
+                                    body       = ann.body,
+                                    author     = ann.authorName,
+                                    authorPhoto = authorInfo?.profilePictureUrl ?: "",
+                                    timeAgo    = formatTimeAgo(ann.timestamp),
+                                    modifier   = Modifier.padding(horizontal = 20.dp, vertical = 5.dp)
                                 )
                             }
                         }
@@ -453,19 +476,19 @@ fun GroupDetailScreen(
                     if (selectedTab == 1) {
                         item {
                             MemberAvatarStack(
-                                names    = g.members.map { memberNames[it] ?: "?" },
+                                names    = g.members.map { memberInfoMap[it]?.name ?: "?" },
                                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
                             )
                             Spacer(Modifier.height(8.dp))
                         }
                         items(g.members, key = { it }) { uid ->
-                            // FIX: show "Loading…" while name is being fetched, never "Unknown"
-                            val name = memberNames[uid] ?: "Loading…"
+                            val info = memberInfoMap[uid]
                             val role = if (uid == g.adminId) "Admin" else "Member"
                             MemberRow(
-                                name     = name,
-                                role     = role,
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                                name        = info?.name ?: "Loading…",
+                                profileUrl  = info?.profilePictureUrl ?: "",
+                                role        = role,
+                                modifier    = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
                             )
                         }
                     }
@@ -480,19 +503,13 @@ fun GroupDetailScreen(
             onDismissRequest = {
                 if (!isPosting) {
                     showPostDialog = false
-                    annTitle = ""
-                    annBody  = ""
+                    annTitle  = ""
+                    annBody   = ""
                     postError = ""
                 }
             },
             icon  = { Icon(Icons.Default.Campaign, null, tint = Ink900) },
-            title = {
-                Text(
-                    "Post Announcement",
-                    fontWeight = FontWeight.Bold,
-                    color      = Ink900
-                )
-            },
+            title = { Text("Post Announcement", fontWeight = FontWeight.Bold, color = Ink900) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
@@ -522,11 +539,7 @@ fun GroupDetailScreen(
                         )
                     )
                     if (postError.isNotEmpty()) {
-                        Text(
-                            postError,
-                            color = Danger,
-                            style = MaterialTheme.typography.labelSmall
-                        )
+                        Text(postError, color = Danger, style = MaterialTheme.typography.labelSmall)
                     }
                 }
             },
@@ -538,11 +551,7 @@ fun GroupDetailScreen(
                     shape    = RoundedCornerShape(10.dp)
                 ) {
                     if (isPosting) {
-                        CircularProgressIndicator(
-                            color       = White,
-                            modifier    = Modifier.size(16.dp),
-                            strokeWidth = 2.dp
-                        )
+                        CircularProgressIndicator(color = White, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                     } else {
                         Text("Post")
                     }
@@ -550,12 +559,7 @@ fun GroupDetailScreen(
             },
             dismissButton = {
                 OutlinedButton(
-                    onClick = {
-                        showPostDialog = false
-                        annTitle  = ""
-                        annBody   = ""
-                        postError = ""
-                    },
+                    onClick = { showPostDialog = false; annTitle = ""; annBody = ""; postError = "" },
                     enabled = !isPosting,
                     shape   = RoundedCornerShape(10.dp),
                     border  = BorderStroke(1.dp, Ink200)
@@ -587,11 +591,7 @@ fun GroupDetailScreen(
                     shape    = RoundedCornerShape(10.dp)
                 ) {
                     if (isLeaving) {
-                        CircularProgressIndicator(
-                            color       = White,
-                            modifier    = Modifier.size(16.dp),
-                            strokeWidth = 2.dp
-                        )
+                        CircularProgressIndicator(color = White, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                     } else {
                         Text("Leave")
                     }
@@ -615,10 +615,10 @@ private fun formatTimeAgo(timestamp: Long): String {
     if (timestamp == 0L) return ""
     val diff = System.currentTimeMillis() - timestamp
     return when {
-        diff < 60_000       -> "Just now"
-        diff < 3_600_000    -> "${diff / 60_000}m ago"
-        diff < 86_400_000   -> "${diff / 3_600_000}h ago"
-        else                -> "${diff / 86_400_000}d ago"
+        diff < 60_000     -> "Just now"
+        diff < 3_600_000  -> "${diff / 60_000}m ago"
+        diff < 86_400_000 -> "${diff / 3_600_000}h ago"
+        else              -> "${diff / 86_400_000}d ago"
     }
 }
 
@@ -649,11 +649,13 @@ private fun DetailStatChip(
     }
 }
 
+// ── AnnouncementCard now accepts authorPhoto ───────────────────────────────────
 @Composable
 private fun AnnouncementCard(
     title: String,
     body: String,
     author: String,
+    authorPhoto: String,        // ← NEW
     timeAgo: String,
     modifier: Modifier = Modifier
 ) {
@@ -666,7 +668,13 @@ private fun AnnouncementCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                AvatarInitials(name = author, size = 36.dp, backgroundColor = Ink900)
+                // Shows actual profile picture if available
+                AvatarInitials(
+                    name     = author,
+                    imageUrl = authorPhoto,
+                    size     = 36.dp,
+                    backgroundColor = Ink900
+                )
                 Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(author, style = MaterialTheme.typography.labelMedium, color = Ink900, fontWeight = FontWeight.SemiBold)
@@ -681,9 +689,11 @@ private fun AnnouncementCard(
     }
 }
 
+// ── MemberRow now accepts profileUrl ──────────────────────────────────────────
 @Composable
 private fun MemberRow(
     name: String,
+    profileUrl: String,         // ← NEW
     role: String,
     modifier: Modifier = Modifier
 ) {
@@ -698,8 +708,10 @@ private fun MemberRow(
             modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Shows actual profile picture if available
             AvatarInitials(
                 name            = name,
+                imageUrl        = profileUrl,
                 size            = 38.dp,
                 backgroundColor = if (role == "Admin") Ink900 else Ink200,
                 textColor       = if (role == "Admin") White else Ink700

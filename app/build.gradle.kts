@@ -63,6 +63,7 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-messaging-ktx")
     implementation("com.google.firebase:firebase-config-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx")
 
     // ── Coroutines ────────────────────────────────────────────────────────────
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
@@ -77,6 +78,9 @@ dependencies {
     // ── Fragment (required by BiometricPrompt) ─────────────────────────────────
     implementation("androidx.fragment:fragment-ktx:1.7.1")
     implementation("androidx.compose.material:material-icons-extended:1.7.0")
+
+    // ── Image Loading ─────────────────────────────────────────────────────────
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

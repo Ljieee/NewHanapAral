@@ -16,11 +16,14 @@ import androidx.compose.ui.draw.*
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
+import coil.compose.AsyncImage
 import com.example.hanaparalgroup.ui.theme.*
+import androidx.compose.ui.graphics.asImageBitmap
 
 // ── Gradient Background ───────────────────────────────────────────────────────
 @Composable
@@ -647,28 +650,65 @@ fun LoadingOverlay(message: String = "Loading...") {
 @Composable
 fun AvatarInitials(
     name: String,
+    imageUrl: String = "",
     size: Dp = 44.dp,
     backgroundColor: Color = Ink900,
     textColor: Color = White
 ) {
-    val initials = name.split(" ")
-        .take(2)
-        .mapNotNull { it.firstOrNull()?.uppercase() }
-        .joinToString("")
-        .ifEmpty { "?" }
-
     Box(
         modifier = Modifier
             .size(size)
-            .background(backgroundColor, CircleShape),
+            .clip(CircleShape)
+            .background(backgroundColor),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = initials,
-            style = MaterialTheme.typography.labelLarge,
-            color = textColor,
-            fontWeight = FontWeight.SemiBold
-        )
+        val isBase64 = remember(imageUrl) {
+            imageUrl.isNotEmpty() && !imageUrl.startsWith("http") && imageUrl.length > 100
+        }
+
+        val bitmap = remember(imageUrl) {
+            if (isBase64) {
+                try {
+                    val bytes = android.util.Base64.decode(imageUrl, android.util.Base64.DEFAULT)
+                    android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                } catch (e: Exception) { null }
+            } else null
+        }
+
+        when {
+            // ── Base64 image ──────────────────────────────────────────────────
+            isBase64 && bitmap != null -> {
+                Image(
+                    bitmap             = bitmap.asImageBitmap(),
+                    contentDescription = null,
+                    contentScale       = ContentScale.Crop,
+                    modifier           = Modifier.fillMaxSize()
+                )
+            }
+            // ── Remote URL image ──────────────────────────────────────────────
+            imageUrl.startsWith("http") -> {
+                AsyncImage(
+                    model              = imageUrl,
+                    contentDescription = null,
+                    contentScale       = ContentScale.Crop,
+                    modifier           = Modifier.fillMaxSize()
+                )
+            }
+            // ── Fallback initials ─────────────────────────────────────────────
+            else -> {
+                val initials = name.split(" ")
+                    .take(2)
+                    .mapNotNull { it.firstOrNull()?.uppercase() }
+                    .joinToString("")
+                    .ifEmpty { "?" }
+                Text(
+                    text       = initials,
+                    style      = MaterialTheme.typography.labelLarge,
+                    color      = textColor,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
     }
 }
 

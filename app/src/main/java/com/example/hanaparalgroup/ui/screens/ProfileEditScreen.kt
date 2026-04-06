@@ -1,5 +1,7 @@
 package com.example.hanaparalgroup.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.*
@@ -9,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -32,12 +35,22 @@ fun ProfileEditScreen(
     var course    by remember { mutableStateOf("") }
     var yearLevel by remember { mutableStateOf("3rd Year") }
     var email     by remember { mutableStateOf("") }
+    var imageUrl  by remember { mutableStateOf("") }
 
     var nameError   by remember { mutableStateOf("") }
     var courseError by remember { mutableStateOf("") }
 
     val yearOptions          = listOf("1st Year", "2nd Year", "3rd Year", "4th Year")
     var yearDropdownExpanded by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+
+    // Image Picker
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { viewModel.uploadProfilePicture(it, context) }
+    }
 
     LaunchedEffect(profileState) {
         if (profileState is ProfileUiState.Success) {
@@ -46,6 +59,7 @@ fun ProfileEditScreen(
             course    = p.course
             yearLevel = p.yearLevel.ifEmpty { "3rd Year" }
             email     = p.email
+            imageUrl  = p.profilePictureUrl
         }
     }
 
@@ -97,11 +111,19 @@ fun ProfileEditScreen(
                     border    = BorderStroke(1.dp, Ink200)
                 ) {
                     Column(
-                        modifier = Modifier.fillMaxWidth().padding(24.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { launcher.launch("image/*") }
+                            .padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Box(contentAlignment = Alignment.BottomEnd) {
-                            AvatarInitials(name = name.ifEmpty { "?" }, size = 80.dp, backgroundColor = Ink900)
+                            AvatarInitials(
+                                name = name.ifEmpty { "?" },
+                                imageUrl = imageUrl,
+                                size = 80.dp,
+                                backgroundColor = Ink900
+                            )
                             Box(
                                 modifier = Modifier
                                     .size(26.dp)

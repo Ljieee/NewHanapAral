@@ -1,5 +1,7 @@
 package com.example.hanaparalgroup.ui.viewmodel
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.hanaparalgroup.data.models.UserProfile
@@ -27,24 +29,18 @@ sealed class SaveUiState {
 // ── ViewModel ─────────────────────────────────────────────────────────────────
 class UserProfileViewModel : ViewModel() {
 
-    // ── Profile state (real-time) ─────────────────────────────────────────────
     private val _profileState = MutableStateFlow<ProfileUiState>(ProfileUiState.Loading)
     val profileState: StateFlow<ProfileUiState> = _profileState.asStateFlow()
 
-    // ── Save state (for ProfileEditScreen) ────────────────────────────────────
     private val _saveState = MutableStateFlow<SaveUiState>(SaveUiState.Idle)
     val saveState: StateFlow<SaveUiState> = _saveState.asStateFlow()
 
-    // Holds the Firestore listener so we can remove it when ViewModel is cleared
     private var listenerRegistration: ListenerRegistration? = null
 
     init {
         startListening()
     }
 
-    // ── Start real-time listener ──────────────────────────────────────────────
-    // Called once in init. Any change to the Firestore document instantly
-    // pushes a new Success state, which all observing screens pick up immediately.
     private fun startListening() {
         val uid = UserProfileRepository.currentUid
         if (uid == null) {
@@ -67,9 +63,6 @@ class UserProfileViewModel : ViewModel() {
         )
     }
 
-    // ── Save editable fields ──────────────────────────────────────────────────
-    // After a successful save, Firestore triggers the listener above automatically,
-    // so ProfileScreen updates with zero extra calls.
     fun saveProfile(name: String, course: String, yearLevel: String) {
         val uid = UserProfileRepository.currentUid ?: return
         _saveState.value = SaveUiState.Saving
@@ -89,12 +82,24 @@ class UserProfileViewModel : ViewModel() {
         }
     }
 
-    // ── Reset save state (call after navigating back from edit screen) ────────
+    fun uploadProfilePicture(uri: Uri, context: Context) {
+        val uid = UserProfileRepository.currentUid ?: return
+        _saveState.value = SaveUiState.Saving
+
+        viewModelScope.launch {
+            val result = UserProfileRepository.uploadProfilePicture(uid, uri, context)
+            _saveState.value = if (result.isSuccess) {
+                SaveUiState.Idle 
+            } else {
+                SaveUiState.Error("Failed to upload image.")
+            }
+        }
+    }
+
     fun resetSaveState() {
         _saveState.value = SaveUiState.Idle
     }
 
-    // ── Clean up listener when ViewModel is destroyed ─────────────────────────
     override fun onCleared() {
         super.onCleared()
         listenerRegistration?.remove()

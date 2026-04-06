@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.*
 import com.example.hanaparalgroup.data.models.StudyGroup
 import com.example.hanaparalgroup.ui.components.*
 import com.example.hanaparalgroup.ui.theme.*
+import com.example.hanaparalgroup.viewmodel.AppConfigViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Query
@@ -51,6 +53,7 @@ fun DashboardScreen(
 
     // ── Live state ─────────────────────────────────────────────────────────────
     var userName       by remember { mutableStateOf("") }
+    var profileUrl     by remember { mutableStateOf("") }
     var allGroups      by remember { mutableStateOf<List<StudyGroup>>(emptyList()) }
     var recentNotifs   by remember { mutableStateOf<List<RecentNotif>>(emptyList()) }
     var unreadCount    by remember { mutableStateOf(0) }
@@ -58,11 +61,15 @@ fun DashboardScreen(
     var selectedTab    by remember { mutableIntStateOf(0) }
     val tabs = listOf("My Groups", "Discover")
 
-    // ── Load user name from Firestore ──────────────────────────────────────────
+    val configViewModel: AppConfigViewModel = viewModel()
+    val appConfig by configViewModel.config.collectAsState()
+
+    // ── Load user info from Firestore ──────────────────────────────────────────
     DisposableEffect(currentUid) {
         val userListener = Firebase.firestore.collection("users").document(currentUid)
             .addSnapshotListener { snap, _ ->
-                userName = snap?.getString("name") ?: Firebase.auth.currentUser?.displayName ?: ""
+                userName   = snap?.getString("name") ?: Firebase.auth.currentUser?.displayName ?: ""
+                profileUrl = snap?.getString("profilePictureUrl") ?: ""
             }
         onDispose { userListener.remove() }
     }
@@ -125,10 +132,41 @@ fun DashboardScreen(
     val discoverGroups = allGroups.filter { !it.members.contains(currentUid) }
     val displayedGroups = if (selectedTab == 0) myGroups else discoverGroups
 
+    if (appConfig.maintenanceMode) {
+        Box(
+            modifier         = Modifier.fillMaxSize().background(Ink50),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    Icons.Default.Construction,
+                    contentDescription = null,
+                    tint     = Ink400,
+                    modifier = Modifier.size(64.dp)
+                )
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "Under Maintenance",
+                    style      = MaterialTheme.typography.headlineSmall,
+                    color      = Ink900,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "We're making improvements. Check back soon!",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Ink400
+                )
+            }
+        }
+        return  // Don't show Dashboard
+    }
+
     Scaffold(
         topBar = {
             DashboardTopBar(
                 userName        = userName,
+                profileUrl      = profileUrl,
                 unreadCount     = unreadCount,
                 onProfileClick  = onNavigateToProfile,
                 onNotifClick    = onNavigateToNotifications,
@@ -158,6 +196,41 @@ fun DashboardScreen(
                     userName           = userName,
                     onNavigateToGroups = onNavigateToGroups
                 )
+            }
+
+            // ── Announcement Banner (from Firestore config) ────────────────────
+            item {
+                val header = appConfig.announcementHeader
+                if (header.isNotBlank()) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 8.dp),
+                        shape  = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = AccentSoft),
+                        border = BorderStroke(1.dp, Accent.copy(alpha = 0.25f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Campaign,
+                                contentDescription = null,
+                                tint     = Accent,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(Modifier.width(10.dp))
+                            Text(
+                                text       = header,
+                                style      = MaterialTheme.typography.bodySmall,
+                                color      = Ink900,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier   = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
             }
 
             // ── Stats Row (live counts) ────────────────────────────────────────
@@ -341,6 +414,7 @@ private fun formatDashTimeAgo(timestamp: Long): String {
 @Composable
 private fun DashboardTopBar(
     userName: String,
+    profileUrl: String,
     unreadCount: Int,
     onProfileClick: () -> Unit,
     onNotifClick: () -> Unit,
@@ -387,6 +461,7 @@ private fun DashboardTopBar(
             IconButton(onClick = onProfileClick) {
                 AvatarInitials(
                     name            = userName.ifEmpty { "?" },
+                    imageUrl        = profileUrl,
                     size            = 32.dp,
                     backgroundColor = White.copy(alpha = 0.15f),
                     textColor       = White

@@ -12,13 +12,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.hanaparalgroup.data.models.StudyGroup
 import com.example.hanaparalgroup.ui.components.*
 import com.example.hanaparalgroup.ui.theme.*
+import com.example.hanaparalgroup.viewmodel.AppConfigViewModel
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
-import com.google.firebase.remoteconfig.ktx.remoteConfig
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -28,24 +29,29 @@ fun CreateGroupScreen(
     onNavigateBack: () -> Unit,
     onGroupCreated: () -> Unit
 ) {
-    var groupName by remember { mutableStateOf("") }
-    var subject by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var isCreating by remember { mutableStateOf(false) }
+    // ── Live config from Firestore ─────────────────────────────────────────────
+    val configViewModel: AppConfigViewModel = viewModel()
+    val appConfig by configViewModel.config.collectAsState()
+
+    // Derived from live Firestore config
+    val groupCreationEnabled = appConfig.groupCreationEnabled
+    val maxMembersFromConfig = appConfig.maxMembersPerGroup.coerceAtLeast(5)
+
+    var groupName    by remember { mutableStateOf("") }
+    var subject      by remember { mutableStateOf("") }
+    var description  by remember { mutableStateOf("") }
+    var isCreating   by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
 
     var groupNameError by remember { mutableStateOf("") }
-    var subjectError by remember { mutableStateOf("") }
+    var subjectError   by remember { mutableStateOf("") }
 
-    // Read max members from Remote Config (default 15)
-    val remoteConfig = Firebase.remoteConfig
-    val maxMembersFromConfig = remoteConfig.getLong("max_members_per_group").toInt()
-        .let { if (it <= 0) 15 else it }
-    var maxMembers by remember { mutableStateOf(maxMembersFromConfig) }
-
-    // Read group creation toggle from Remote Config
-    val groupCreationEnabled = remoteConfig.getBoolean("group_creation_enabled")
-        .let { true } // default true if not set
+    // maxMembers slider is capped by the live config value
+    var maxMembers by remember { mutableStateOf(15) }
+    // Keep maxMembers within config bounds when config changes
+    LaunchedEffect(maxMembersFromConfig) {
+        if (maxMembers > maxMembersFromConfig) maxMembers = maxMembersFromConfig
+    }
 
     val scope = rememberCoroutineScope()
 
@@ -58,10 +64,10 @@ fun CreateGroupScreen(
 
     fun validate(): Boolean {
         groupNameError = when {
-            groupName.isBlank()     -> "Group name is required"
-            groupName.length < 3    -> "Name must be at least 3 characters"
-            groupName.length > 50   -> "Name must be under 50 characters"
-            else                    -> ""
+            groupName.isBlank()   -> "Group name is required"
+            groupName.length < 3  -> "Name must be at least 3 characters"
+            groupName.length > 50 -> "Name must be under 50 characters"
+            else                  -> ""
         }
         subjectError = if (subject.isBlank()) "Please select or enter a subject" else ""
         return groupNameError.isEmpty() && subjectError.isEmpty()
@@ -85,11 +91,44 @@ fun CreateGroupScreen(
                     .padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Header banner
+                // ── Group creation disabled banner ─────────────────────────────
+                if (!groupCreationEnabled) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape    = RoundedCornerShape(14.dp),
+                        colors   = CardDefaults.cardColors(containerColor = DangerLight),
+                        border   = BorderStroke(1.dp, Danger.copy(alpha = 0.4f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Lock, null, tint = Danger, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    "Group Creation Disabled",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Danger, fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "The administrator has temporarily disabled creating new groups.",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Danger.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // ── Header banner ──────────────────────────────────────────────
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Ink900, RoundedCornerShape(16.dp))
+                        .background(
+                            if (groupCreationEnabled) Ink900 else Ink400,
+                            RoundedCornerShape(16.dp)
+                        )
                         .padding(horizontal = 24.dp, vertical = 22.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -97,8 +136,7 @@ fun CreateGroupScreen(
                             Text(
                                 "Start a Study Group",
                                 style = MaterialTheme.typography.titleMedium,
-                                color = White,
-                                fontWeight = FontWeight.Bold
+                                color = White, fontWeight = FontWeight.Bold
                             )
                             Spacer(Modifier.height(3.dp))
                             Text(
@@ -110,19 +148,19 @@ fun CreateGroupScreen(
                         Icon(
                             Icons.Default.Groups,
                             contentDescription = null,
-                            tint = White.copy(alpha = 0.15f),
+                            tint     = White.copy(alpha = 0.15f),
                             modifier = Modifier.size(52.dp)
                         )
                     }
                 }
 
-                // Form card
+                // ── Form card ──────────────────────────────────────────────────
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = White),
+                    modifier  = Modifier.fillMaxWidth(),
+                    shape     = RoundedCornerShape(16.dp),
+                    colors    = CardDefaults.cardColors(containerColor = White),
                     elevation = CardDefaults.cardElevation(0.dp),
-                    border = BorderStroke(1.dp, Ink200)
+                    border    = BorderStroke(1.dp, Ink200)
                 ) {
                     Column(
                         modifier = Modifier.padding(20.dp),
@@ -131,60 +169,59 @@ fun CreateGroupScreen(
                         Text(
                             "Group Details",
                             style = MaterialTheme.typography.titleSmall,
-                            color = Ink400,
-                            fontWeight = FontWeight.SemiBold
+                            color = Ink400, fontWeight = FontWeight.SemiBold
                         )
 
                         BrandedTextField(
-                            value = groupName,
+                            value         = groupName,
                             onValueChange = { groupName = it; groupNameError = "" },
-                            label = "Group Name *",
-                            leadingIcon = Icons.Default.Groups,
-                            isError = groupNameError.isNotEmpty(),
-                            errorMessage = groupNameError,
-                            placeholder = "e.g. Algorithm Avengers"
+                            label         = "Group Name *",
+                            leadingIcon   = Icons.Default.Groups,
+                            isError       = groupNameError.isNotEmpty(),
+                            errorMessage  = groupNameError,
+                            placeholder   = "e.g. Algorithm Avengers",
+                            enabled       = groupCreationEnabled
                         )
                         Text(
                             "${groupName.length}/50",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (groupName.length > 50) Danger else Ink300,
+                            style    = MaterialTheme.typography.labelSmall,
+                            color    = if (groupName.length > 50) Danger else Ink300,
                             modifier = Modifier.align(Alignment.End)
                         )
 
                         ExposedDropdownMenuBox(
-                            expanded = subjectDropdownExpanded,
-                            onExpandedChange = { subjectDropdownExpanded = it }
+                            expanded        = subjectDropdownExpanded && groupCreationEnabled,
+                            onExpandedChange = { if (groupCreationEnabled) subjectDropdownExpanded = it }
                         ) {
                             OutlinedTextField(
-                                value = subject,
+                                value         = subject,
                                 onValueChange = { subject = it; subjectError = "" },
-                                label = { Text("Subject / Topic *", style = MaterialTheme.typography.bodySmall) },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Book, null, tint = if (subjectError.isNotEmpty()) Danger else Ink400, modifier = Modifier.size(18.dp))
+                                label         = { Text("Subject / Topic *", style = MaterialTheme.typography.bodySmall) },
+                                leadingIcon   = {
+                                    Icon(
+                                        Icons.Default.Book, null,
+                                        tint     = if (subjectError.isNotEmpty()) Danger else Ink400,
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                 },
-                                trailingIcon = {
-                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = subjectDropdownExpanded)
-                                },
-                                isError = subjectError.isNotEmpty(),
-                                placeholder = { Text("Select or type a subject", color = Ink300, style = MaterialTheme.typography.bodySmall) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .menuAnchor(MenuAnchorType.PrimaryEditable),
-                                shape = RoundedCornerShape(10.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = Ink900,
+                                trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = subjectDropdownExpanded) },
+                                isError       = subjectError.isNotEmpty(),
+                                modifier      = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryEditable),
+                                shape         = RoundedCornerShape(10.dp),
+                                enabled       = groupCreationEnabled,
+                                colors        = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor   = Ink900,
                                     unfocusedBorderColor = Ink200,
-                                    errorBorderColor = Danger,
-                                    focusedLabelColor = Ink900
+                                    errorBorderColor     = Danger
                                 )
                             )
                             ExposedDropdownMenu(
-                                expanded = subjectDropdownExpanded,
+                                expanded        = subjectDropdownExpanded,
                                 onDismissRequest = { subjectDropdownExpanded = false }
                             ) {
                                 subjectOptions.forEach { option ->
                                     DropdownMenuItem(
-                                        text = { Text(option, style = MaterialTheme.typography.bodySmall) },
+                                        text    = { Text(option, style = MaterialTheme.typography.bodySmall) },
                                         onClick = {
                                             subject = option
                                             subjectDropdownExpanded = false
@@ -195,43 +232,46 @@ fun CreateGroupScreen(
                             }
                         }
                         if (subjectError.isNotEmpty()) {
-                            Text(subjectError, color = Danger, style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(start = 14.dp))
+                            Text(
+                                subjectError, color = Danger,
+                                style    = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(start = 14.dp)
+                            )
                         }
 
                         BrandedTextField(
-                            value = description,
+                            value         = description,
                             onValueChange = { description = it },
-                            label = "Description (optional)",
-                            leadingIcon = Icons.Default.Description,
-                            singleLine = false,
-                            maxLines = 4,
-                            placeholder = "What will this group study? Any specific goals?"
+                            label         = "Description (optional)",
+                            leadingIcon   = Icons.Default.Description,
+                            singleLine    = false,
+                            maxLines      = 4,
+                            placeholder   = "What will this group study? Any specific goals?",
+                            enabled       = groupCreationEnabled
                         )
                     }
                 }
 
-                // Settings Card
+                // ── Settings Card ──────────────────────────────────────────────
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = White),
+                    modifier  = Modifier.fillMaxWidth(),
+                    shape     = RoundedCornerShape(16.dp),
+                    colors    = CardDefaults.cardColors(containerColor = White),
                     elevation = CardDefaults.cardElevation(0.dp),
-                    border = BorderStroke(1.dp, Ink200)
+                    border    = BorderStroke(1.dp, Ink200)
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text(
                             "Group Settings",
                             style = MaterialTheme.typography.titleSmall,
-                            color = Ink400,
-                            fontWeight = FontWeight.SemiBold
+                            color = Ink400, fontWeight = FontWeight.SemiBold
                         )
                         Spacer(Modifier.height(16.dp))
 
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier              = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment     = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.Group, null, tint = Ink400, modifier = Modifier.size(16.dp))
@@ -241,34 +281,35 @@ fun CreateGroupScreen(
                             Surface(shape = RoundedCornerShape(20.dp), color = Ink100) {
                                 Text(
                                     "$maxMembers members",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Ink700,
+                                    style      = MaterialTheme.typography.labelSmall,
+                                    color      = Ink700,
                                     fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
+                                    modifier   = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
                                 )
                             }
                         }
                         Spacer(Modifier.height(3.dp))
                         Text(
-                            "Controlled by Remote Config — Superuser can override",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Ink300,
+                            "Admin-controlled limit (max: $maxMembersFromConfig)",
+                            style    = MaterialTheme.typography.labelSmall,
+                            color    = Ink300,
                             modifier = Modifier.padding(start = 24.dp)
                         )
                         Spacer(Modifier.height(10.dp))
                         Slider(
-                            value = maxMembers.toFloat(),
+                            value         = maxMembers.toFloat(),
                             onValueChange = { maxMembers = it.toInt() },
-                            valueRange = 5f..maxMembersFromConfig.toFloat().coerceAtLeast(30f),
-                            steps = (maxMembersFromConfig.coerceAtLeast(30) - 5 - 1).coerceAtLeast(0),
-                            colors = SliderDefaults.colors(
-                                thumbColor = Ink900,
-                                activeTrackColor = Ink900,
+                            valueRange    = 5f..maxMembersFromConfig.toFloat().coerceAtLeast(5f),
+                            steps         = (maxMembersFromConfig.coerceAtLeast(6) - 6).coerceAtLeast(0),
+                            enabled       = groupCreationEnabled,
+                            colors        = SliderDefaults.colors(
+                                thumbColor         = Ink900,
+                                activeTrackColor   = Ink900,
                                 inactiveTrackColor = Ink200
                             )
                         )
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier              = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text("5", style = MaterialTheme.typography.labelSmall, color = Ink300)
@@ -277,12 +318,12 @@ fun CreateGroupScreen(
                     }
                 }
 
-                // Admin notice
+                // ── Admin notice ───────────────────────────────────────────────
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = AccentSoft),
-                    border = BorderStroke(1.dp, Accent.copy(alpha = 0.2f)),
+                    modifier  = Modifier.fillMaxWidth(),
+                    shape     = RoundedCornerShape(14.dp),
+                    colors    = CardDefaults.cardColors(containerColor = AccentSoft),
+                    border    = BorderStroke(1.dp, Accent.copy(alpha = 0.2f)),
                     elevation = CardDefaults.cardElevation(0.dp)
                 ) {
                     Row(
@@ -302,14 +343,15 @@ fun CreateGroupScreen(
                     Text(errorMessage, color = Danger, style = MaterialTheme.typography.labelSmall)
                 }
 
-                // Create Button
+                // ── Create Button ──────────────────────────────────────────────
                 PrimaryButton(
-                    text = "Create Group",
-                    onClick = {
+                    text      = if (groupCreationEnabled) "Create Group" else "Group Creation Disabled",
+                    onClick   = {
+                        if (!groupCreationEnabled) return@PrimaryButton
                         if (validate()) {
-                            isCreating = true
+                            isCreating   = true
                             errorMessage = ""
-                            val uid = Firebase.auth.currentUser?.uid ?: return@PrimaryButton
+                            val uid     = Firebase.auth.currentUser?.uid ?: return@PrimaryButton
                             val groupId = Firebase.firestore.collection("groups").document().id
                             val newGroup = StudyGroup(
                                 groupId     = groupId,
@@ -330,14 +372,14 @@ fun CreateGroupScreen(
                                     onGroupCreated()
                                 } catch (e: Exception) {
                                     errorMessage = "Failed to create group: ${e.localizedMessage}"
-                                    isCreating = false
+                                    isCreating   = false
                                 }
                             }
                         }
                     },
-                    icon = Icons.Default.Add,
+                    icon      = if (groupCreationEnabled) Icons.Default.Add else Icons.Default.Lock,
                     isLoading = isCreating,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier  = Modifier.fillMaxWidth()
                 )
 
                 Spacer(Modifier.height(24.dp))

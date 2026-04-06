@@ -122,6 +122,7 @@ private fun ProfileContent(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 AvatarInitials(
                     name            = profile.name.ifEmpty { "?" },
+                    imageUrl        = profile.profilePictureUrl,
                     size            = 76.dp,
                     backgroundColor = White.copy(alpha = 0.12f),
                     textColor       = White

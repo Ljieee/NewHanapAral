@@ -2,6 +2,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- ── Permissions ─────────────────────────────────────────────────────── -->
+    <!-- Required for all Firebase calls -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Required for BiometricPrompt (was completely missing — biometric would crash) -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+
+    <!-- Required on Android 13+ for FCM heads-up notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -11,17 +21,42 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.HanapAralGroup">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.HanapAralGroup">
+            android:theme="@style/Theme.HanapAralGroup"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+            FCM Service — was COMPLETELY MISSING from the manifest.
+            Without this the app never receives push notifications:
+              • onMessageReceived is never called
+              • onNewToken never fires → fcmToken in Firestore is never saved
+        -->
+        <service
+            android:name=".fcm.MyFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!--
+            Tells FCM which notification channel to use for display notifications
+            (those delivered when the app is in the background).
+            The value must match the channel ID created in MyFirebaseMessagingService.
+        -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="@string/default_notification_channel_id" />
+
     </application>
 
 </manifest>

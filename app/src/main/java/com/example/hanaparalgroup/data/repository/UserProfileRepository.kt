@@ -5,6 +5,7 @@ import com.example.hanaparalgroup.data.models.UserProfile
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.storage.ktx.storage
 import kotlinx.coroutines.tasks.await
 
 object UserProfileRepository {
@@ -17,8 +18,6 @@ object UserProfileRepository {
         get() = Firebase.auth.currentUser?.uid
 
     // ── Create or Overwrite a profile document ────────────────────────────────
-    // Called on first login (SplashScreen/LoginScreen) to seed the user document.
-    // Uses .set() so it creates the doc if it doesn't exist yet.
     suspend fun createProfile(profile: UserProfile): Result<Unit> {
         return try {
             Firebase.firestore
@@ -35,7 +34,6 @@ object UserProfileRepository {
     }
 
     // ── Fetch a profile once (not real-time) ──────────────────────────────────
-    // Use this where you just need to read data once, e.g. on screen open.
     suspend fun getProfile(uid: String): Result<UserProfile?> {
         return try {
             val snapshot = Firebase.firestore
@@ -52,8 +50,6 @@ object UserProfileRepository {
     }
 
     // ── Update only editable fields (name, course, yearLevel) ─────────────────
-    // Called from ProfileEditScreen when the user taps "Save Changes".
-    // Uses .update() so fcmToken and other fields are NOT wiped.
     suspend fun updateProfile(uid: String, name: String, course: String, yearLevel: String): Result<Unit> {
         return try {
             val updates = mapOf(
@@ -74,8 +70,36 @@ object UserProfileRepository {
         }
     }
 
-    // ── Real-time listener (used in Task 2 – Real-Time Sync) ──────────────────
-    // Returns a ListenerRegistration so the caller can remove it on destroy.
+    // ── Upload Profile Picture (Base64 to Firestore) ──────────────────────────
+    suspend fun uploadProfilePicture(uid: String, imageUri: android.net.Uri, context: android.content.Context): Result<String> {
+        return try {
+            // Compress and convert to Base64
+            val inputStream = context.contentResolver.openInputStream(imageUri)
+            val originalBitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
+            
+            // Resize to 200x200 to keep Firestore document small
+            val resized = android.graphics.Bitmap.createScaledBitmap(originalBitmap, 200, 200, true)
+            
+            val outputStream = java.io.ByteArrayOutputStream()
+            resized.compress(android.graphics.Bitmap.CompressFormat.JPEG, 60, outputStream)
+            val base64String = android.util.Base64.encodeToString(outputStream.toByteArray(), android.util.Base64.DEFAULT)
+            
+            // Save directly to Firestore
+            Firebase.firestore
+                .collection(COLLECTION)
+                .document(uid)
+                .update("profilePictureUrl", base64String)
+                .await()
+            
+            Log.d(TAG, "Profile picture (Base64) saved for uid=$uid")
+            Result.success(base64String)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to upload profile picture", e)
+            Result.failure(e)
+        }
+    }
+
+    // ── Real-time listener ───────────────────────────────────────────────────
     fun listenToProfile(
         uid: String,
         onUpdate: (UserProfile) -> Unit,
