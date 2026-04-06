@@ -1,3 +1,10 @@
 <resources>
-    <string name="app_name">HanapAralGroup</string>
+    <string name="app_name">HanapAral</string>
+
+    <!-- Replace this value with your actual Web Client ID from google-services.json -->
+    <!-- Found in: google-services.json → oauth_client → client_type: 3 → client_id -->
+    <string name="default_web_client_id">349358029453-lja3dtjbjl5o3tnanvpk2r7ldtjf1clj.apps.googleusercontent.com</string>
+
+    <!-- FCM notification channel -->
+    <string name="default_notification_channel_id">hanaparal_notifications</string>
 </resources>
