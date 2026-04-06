@@ -206,7 +206,12 @@ fun LoginScreen(onLoginSuccess: (isNewUser: Boolean) -> Unit) {
                                     .requestEmail()
                                     .build()
                                 val client = GoogleSignIn.getClient(context, gso)
-                                launcher.launch(client.signInIntent)
+                                
+                                // FORCE ACCOUNT PICKER: Sign out from Google SDK before launching intent
+                                scope.launch {
+                                    client.signOut().await()
+                                    launcher.launch(client.signInIntent)
+                                }
                             },
                             isLoading = isLoading,
                             modifier = Modifier.fillMaxWidth()
