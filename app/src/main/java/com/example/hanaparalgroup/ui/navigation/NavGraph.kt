@@ -13,6 +13,7 @@ object Routes {
     const val DASHBOARD       = "dashboard"
     const val PROFILE         = "profile"
     const val PROFILE_EDIT    = "profile_edit"
+    const val PROFILE_SETUP   = "profile_setup"
     const val GROUPS          = "groups"
     const val GROUP_DETAIL    = "group_detail/{groupId}"
     const val CREATE_GROUP    = "create_group"
@@ -50,9 +51,19 @@ fun HanapAralNavGraph(
         composable(Routes.LOGIN) {
             LoginScreen(
                 onLoginSuccess = { isNewUser ->
-                    val destination = if (isNewUser) Routes.PROFILE_EDIT else Routes.DASHBOARD
+                    val destination = if (isNewUser) Routes.PROFILE_SETUP else Routes.DASHBOARD
                     navController.navigate(destination) {
                         popUpTo(Routes.LOGIN) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(Routes.PROFILE_SETUP) {
+            ProfileSetupScreen(
+                onSetupComplete = {
+                    navController.navigate(Routes.DASHBOARD) {
+                        popUpTo(Routes.PROFILE_SETUP) { inclusive = true }
                     }
                 }
             )
@@ -84,16 +95,7 @@ fun HanapAralNavGraph(
         composable(Routes.PROFILE_EDIT) {
             ProfileEditScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onSaved        = {
-                    // Try to pop back to Profile screen. 
-                    // If we can't pop, it means we came directly from Login (new user),
-                    // so we navigate to Dashboard.
-                    if (!navController.popBackStack()) {
-                        navController.navigate(Routes.DASHBOARD) {
-                            popUpTo(Routes.PROFILE_EDIT) { inclusive = true }
-                        }
-                    }
-                }
+                onSaved        = { navController.popBackStack() }
             )
         }
 
