@@ -7,8 +7,8 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.example.hanaparal.R
-import com.example.hanaparal.models.StudyGroup
+import com.example.hanaparalgroup.R
+import com.example.hanaparalgroup.data.models.StudyGroup
 
 class GroupAdapter(
     private var groups: List<StudyGroup>,
