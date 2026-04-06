@@ -71,19 +71,19 @@ fun HanapAralNavGraph(
         composable(Routes.PROFILE) {
             ProfileScreen(
                 onNavigateBack   = { navController.popBackStack() },
-                onNavigateToEdit = { navController.navigate(Routes.PROFILE_EDIT) }
+                onNavigateToEdit = { navController.navigate(Routes.PROFILE_EDIT) },
+                onSignOut        = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
             )
         }
 
         composable(Routes.PROFILE_EDIT) {
             ProfileEditScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onSaved        = { navController.popBackStack() },
-                onSignOut      = {
-                    navController.navigate(Routes.LOGIN) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                }
+                onSaved        = { navController.popBackStack() }
             )
         }
 
