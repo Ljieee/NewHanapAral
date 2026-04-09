@@ -34,12 +34,68 @@ private data class NotifItem(
 fun NotificationsScreen(onNavigateBack: () -> Unit) {
     val currentUid = Firebase.auth.currentUser?.uid ?: ""
 
-    // FIX: Track read IDs in a separate remembered Set so it is NEVER reset
-    // when Firestore pushes new data. This is the source of truth for read state.
-    val readIds = remember { mutableStateOf(emptySet<String>()) }
-
-    var rawItems  by remember { mutableStateOf<List<NotifItem>>(emptyList()) }
+    var rawItems by remember { mutableStateOf<List<NotifItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+
+    // Track which notifications are read via Firestore subcollection
+    var readIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+
+    // Load read status from Firestore
+    LaunchedEffect(currentUid) {
+        if (currentUid.isNotEmpty()) {
+            Firebase.firestore
+                .collection("users")
+                .document(currentUid)
+                .collection("readNotifications")
+                .get()
+                .addOnSuccessListener { snapshot ->
+                    readIds = snapshot.documents.mapNotNull { it.id }.toSet()
+                }
+        }
+    }
+
+    // Save read status to Firestore
+    fun markAsRead(notificationId: String) {
+        if (notificationId !in readIds) {
+            readIds = readIds + notificationId
+            Firebase.firestore
+                .collection("users")
+                .document(currentUid)
+                .collection("readNotifications")
+                .document(notificationId)
+                .set(mapOf("readAt" to System.currentTimeMillis()))
+                .addOnFailureListener {
+                    // Revert if save fails
+                    readIds = readIds - notificationId
+                }
+        }
+    }
+
+    fun markAllAsRead() {
+        val toMark = rawItems.map { it.id }.filter { it !in readIds }
+        readIds = readIds + toMark.toSet()
+
+        val batch = Firebase.firestore.batch()
+        toMark.forEach { id ->
+            val ref = Firebase.firestore
+                .collection("users")
+                .document(currentUid)
+                .collection("readNotifications")
+                .document(id)
+            batch.set(ref, mapOf("readAt" to System.currentTimeMillis()))
+        }
+        batch.commit().addOnFailureListener {
+            // Reload read status on failure
+            Firebase.firestore
+                .collection("users")
+                .document(currentUid)
+                .collection("readNotifications")
+                .get()
+                .addOnSuccessListener { snapshot ->
+                    readIds = snapshot.documents.mapNotNull { it.id }.toSet()
+                }
+        }
+    }
 
     // ── Real-time Firestore listener ───────────────────────────────────────────
     DisposableEffect(currentUid) {
@@ -71,14 +127,13 @@ fun NotificationsScreen(onNavigateBack: () -> Unit) {
                                 NotificationType.REMINDER     -> "Upcoming session in $groupName."
                             }
 
-                            // FIX: isRead is derived from readIds Set, NOT set to false here
                             NotifItem(
                                 id      = doc.id,
                                 title   = title,
                                 body    = body,
                                 timeAgo = formatTimeAgo(timestamp),
                                 type    = type,
-                                isRead  = doc.id in readIds.value
+                                isRead  = doc.id in readIds
                             )
                         } catch (_: Exception) { null }
                     }
@@ -89,7 +144,7 @@ fun NotificationsScreen(onNavigateBack: () -> Unit) {
     }
 
     // Derive final list with up-to-date isRead from the readIds Set
-    val notifications = rawItems.map { it.copy(isRead = it.id in readIds.value) }
+    val notifications = rawItems.map { it.copy(isRead = it.id in readIds) }
     val unreadCount   = notifications.count { !it.isRead }
 
     Scaffold(
@@ -99,10 +154,7 @@ fun NotificationsScreen(onNavigateBack: () -> Unit) {
                 onNavigateBack = onNavigateBack,
                 actions = {
                     if (unreadCount > 0) {
-                        TextButton(onClick = {
-                            // FIX: add ALL current IDs to readIds — never resets
-                            readIds.value = readIds.value + notifications.map { it.id }.toSet()
-                        }) {
+                        TextButton(onClick = { markAllAsRead() }) {
                             Text(
                                 "Mark all read",
                                 color = White.copy(alpha = 0.7f),
@@ -172,10 +224,7 @@ fun NotificationsScreen(onNavigateBack: () -> Unit) {
                                 timeAgo  = notif.timeAgo,
                                 type     = notif.type,
                                 isRead   = notif.isRead,
-                                // FIX: mark as read by adding to the persistent readIds Set
-                                onClick  = {
-                                    readIds.value = readIds.value + notif.id
-                                },
+                                onClick  = { markAsRead(notif.id) },
                                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
                             )
                         }

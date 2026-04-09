@@ -55,6 +55,7 @@ fun DashboardScreen(
     var userName       by remember { mutableStateOf("") }
     var profileUrl     by remember { mutableStateOf("") }
     var allGroups      by remember { mutableStateOf<List<StudyGroup>>(emptyList()) }
+    var adminNames     by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var recentNotifs   by remember { mutableStateOf<List<RecentNotif>>(emptyList()) }
     var unreadCount    by remember { mutableStateOf(0) }
     var joiningIds     by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -85,43 +86,107 @@ fun DashboardScreen(
         onDispose { groupsListener.remove() }
     }
 
-    // ── Real-time notifications listener (top 3 for recent activity) ──────────
-    DisposableEffect(Unit) {
-        val notifListener = Firebase.firestore.collection("notifications")
+    // ── Load admin names when groups change ─────────────────────────────────────
+    LaunchedEffect(allGroups) {
+        val names = mutableMapOf<String, String>()
+        for (group in allGroups) {
+            if (!names.containsKey(group.adminId)) {
+                try {
+                    val userDoc = Firebase.firestore.collection("users").document(group.adminId).get().await()
+                    val name = userDoc.getString("name") ?: "Unknown Admin"
+                    names[group.adminId] = name
+                } catch (_: Exception) {
+                    names[group.adminId] = "Unknown Admin"
+                }
+            }
+        }
+        adminNames = names
+    }
+
+    // ── Real-time unread count listener ─────────────────────────────────────────
+    DisposableEffect(currentUid) {
+        if (currentUid.isEmpty()) return@DisposableEffect onDispose {}
+
+        // Listen to notifications
+        val notificationsListener = Firebase.firestore
+            .collection("notifications")
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .addSnapshotListener { snap, _ ->
+                if (snap != null) {
+                    val allNotificationIds = snap.documents.mapNotNull { it.id }.toSet()
+
+                    // Listen to user's read notifications subcollection in real-time
+                    val readListener = Firebase.firestore
+                        .collection("users")
+                        .document(currentUid)
+                        .collection("readNotifications")
+                        .addSnapshotListener { readSnap, _ ->
+                            if (readSnap != null) {
+                                val readIds = readSnap.documents.mapNotNull { it.id }.toSet()
+                                val unread = allNotificationIds.count { it !in readIds }
+                                unreadCount = unread
+                            }
+                        }
+
+                    // We'll return a composite cleanup
+                    onDispose {
+                        readListener.remove()
+                    }
+                }
+            }
+
+        onDispose {
+            notificationsListener.remove()
+        }
+    }
+
+    // ── Real-time recent notifications (top 3) ──────────────────────────────────
+    DisposableEffect(currentUid) {
+        val notifListener = Firebase.firestore
+            .collection("notifications")
             .orderBy("timestamp", Query.Direction.DESCENDING)
             .limit(3)
             .addSnapshotListener { snap, _ ->
                 if (snap != null) {
-                    recentNotifs = snap.documents.mapNotNull { doc ->
-                        try {
-                            val type = when (doc.getString("type")) {
-                                "NEW_MEMBER"   -> NotificationType.NEW_MEMBER
-                                "ANNOUNCEMENT" -> NotificationType.ANNOUNCEMENT
-                                "REMINDER"     -> NotificationType.REMINDER
-                                else           -> NotificationType.NEW_MEMBER
+                    // Get read status for unread calculation
+                    Firebase.firestore
+                        .collection("users")
+                        .document(currentUid)
+                        .collection("readNotifications")
+                        .get()
+                        .addOnSuccessListener { readSnap ->
+                            val readIds = readSnap.documents.mapNotNull { it.id }.toSet()
+
+                            recentNotifs = snap.documents.mapNotNull { doc ->
+                                try {
+                                    val type = when (doc.getString("type")) {
+                                        "NEW_MEMBER"   -> NotificationType.NEW_MEMBER
+                                        "ANNOUNCEMENT" -> NotificationType.ANNOUNCEMENT
+                                        "REMINDER"     -> NotificationType.REMINDER
+                                        else           -> NotificationType.NEW_MEMBER
+                                    }
+                                    val groupName = doc.getString("groupName") ?: "a group"
+                                    val timestamp = doc.getLong("timestamp") ?: 0L
+                                    val title = when (type) {
+                                        NotificationType.NEW_MEMBER   -> "New Member Joined"
+                                        NotificationType.ANNOUNCEMENT -> "Group Announcement"
+                                        NotificationType.REMINDER     -> "Study Reminder"
+                                    }
+                                    val body = when (type) {
+                                        NotificationType.NEW_MEMBER   -> "Someone joined $groupName."
+                                        NotificationType.ANNOUNCEMENT -> "New announcement in $groupName."
+                                        NotificationType.REMINDER     -> "Upcoming session in $groupName."
+                                    }
+                                    RecentNotif(
+                                        id      = doc.id,
+                                        title   = title,
+                                        body    = body,
+                                        timeAgo = formatDashTimeAgo(timestamp),
+                                        type    = type
+                                    )
+                                } catch (_: Exception) { null }
                             }
-                            val groupName = doc.getString("groupName") ?: "a group"
-                            val timestamp = doc.getLong("timestamp") ?: 0L
-                            val title = when (type) {
-                                NotificationType.NEW_MEMBER   -> "New Member Joined"
-                                NotificationType.ANNOUNCEMENT -> "Group Announcement"
-                                NotificationType.REMINDER     -> "Study Reminder"
-                            }
-                            val body = when (type) {
-                                NotificationType.NEW_MEMBER   -> "Someone joined $groupName."
-                                NotificationType.ANNOUNCEMENT -> "New announcement in $groupName."
-                                NotificationType.REMINDER     -> "Upcoming session in $groupName."
-                            }
-                            RecentNotif(
-                                id      = doc.id,
-                                title   = title,
-                                body    = body,
-                                timeAgo = formatDashTimeAgo(timestamp),
-                                type    = type
-                            )
-                        } catch (_: Exception) { null }
-                    }
-                    unreadCount = snap.documents.size   // treat all fetched as unread for badge
+                        }
                 }
             }
         onDispose { notifListener.remove() }
@@ -159,7 +224,7 @@ fun DashboardScreen(
                 )
             }
         }
-        return  // Don't show Dashboard
+        return
     }
 
     Scaffold(
@@ -317,12 +382,14 @@ fun DashboardScreen(
                 items(displayedGroups, key = { it.groupId }) { group ->
                     val isJoined            = group.members.contains(currentUid)
                     val isJoiningThisGroup  = joiningIds.contains(group.groupId)
+                    val adminName = adminNames[group.adminId] ?: "Loading..."
+
                     StudyGroupCard(
                         groupName   = group.groupName,
                         subject     = group.description,
                         memberCount = group.members.size,
                         maxMembers  = group.maxMembers,
-                        adminName   = group.adminId,
+                        adminName   = adminName,
                         isJoined    = isJoined,
                         onClick     = { onNavigateToGroupDetail(group.groupId) },
                         onJoinClick = {
@@ -454,7 +521,7 @@ private fun DashboardTopBar(
                             .offset(x = (-4).dp, y = 4.dp)
                             .align(Alignment.TopEnd)
                     ) {
-                        Text(unreadCount.toString(), style = MaterialTheme.typography.labelSmall)
+                        Text(if (unreadCount > 99) "99+" else unreadCount.toString(), style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
@@ -527,7 +594,7 @@ private fun HeroBanner(userName: String, onNavigateToGroups: () -> Unit) {
     }
 }
 
-// ── Stats Row (all values are now parameters, no hardcoding) ──────────────────
+// ── Stats Row ──────────────────────────────────────────────────────────────────
 @Composable
 private fun StatsRow(
     myGroupsCount: Int,

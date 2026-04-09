@@ -20,7 +20,7 @@ import com.example.hanaparalgroup.data.models.StudyGroup
 import com.example.hanaparalgroup.ui.components.*
 import com.example.hanaparalgroup.ui.theme.*
 import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.FieldValue          // ← FIX: use arrayUnion
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.launch
@@ -38,8 +38,8 @@ fun GroupsScreen(
     val filters = listOf("All", "Joined", "Open", "Full")
 
     var groups    by remember { mutableStateOf<List<StudyGroup>>(emptyList()) }
+    var adminNames by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var isLoading by remember { mutableStateOf(true) }
-    // Track which groupIds are currently being joined (prevents double-tap)
     var joiningIds by remember { mutableStateOf<Set<String>>(emptySet()) }
 
     val currentUid = Firebase.auth.currentUser?.uid ?: ""
@@ -57,6 +57,23 @@ fun GroupsScreen(
                 }
             }
         onDispose { listener.remove() }
+    }
+
+    // ── Load admin names when groups change ─────────────────────────────────────
+    LaunchedEffect(groups) {
+        val names = mutableMapOf<String, String>()
+        for (group in groups) {
+            if (!names.containsKey(group.adminId)) {
+                try {
+                    val userDoc = Firebase.firestore.collection("users").document(group.adminId).get().await()
+                    val name = userDoc.getString("name") ?: "Unknown Admin"
+                    names[group.adminId] = name
+                } catch (_: Exception) {
+                    names[group.adminId] = "Unknown Admin"
+                }
+            }
+        }
+        adminNames = names
     }
 
     // ── Filtered list ──────────────────────────────────────────────────────────
@@ -244,13 +261,14 @@ fun GroupsScreen(
                     items(filtered, key = { it.groupId }) { group ->
                         val isJoined   = group.members.contains(currentUid)
                         val isJoiningThisGroup = joiningIds.contains(group.groupId)
+                        val adminName = adminNames[group.adminId] ?: "Loading..."
 
                         StudyGroupCard(
                             groupName   = group.groupName,
                             subject     = group.description,
                             memberCount = group.members.size,
                             maxMembers  = group.maxMembers,
-                            adminName   = group.adminId,   // shown as-is; replace with name lookup if needed
+                            adminName   = adminName,
                             isJoined    = isJoined,
                             onClick     = { onNavigateToDetail(group.groupId) },
                             onJoinClick = {
@@ -258,7 +276,6 @@ fun GroupsScreen(
                                     joiningIds = joiningIds + group.groupId
                                     scope.launch {
                                         try {
-                                            // FIX: arrayUnion is atomic — safe for concurrent joins
                                             Firebase.firestore
                                                 .collection("groups")
                                                 .document(group.groupId)
@@ -268,7 +285,6 @@ fun GroupsScreen(
                                                 )
                                                 .await()
 
-                                            // Write notification event
                                             Firebase.firestore
                                                 .collection("notifications")
                                                 .add(
